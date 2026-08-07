@@ -1,0 +1,48 @@
+datasource db{
+  provider = "postgresql" // cau hinh db
+  url = env("DATABASE_URL")
+}
+generator client {
+  provider = "prisma-client-js"
+
+}
+// song table 
+model Song {
+  id Int @id @default(autoincrement()) // @id@default (pk)
+  title String 
+  artist String
+  albumCover String // URL anh bia bai hat
+  audioURL String // URL file nhac dang mp3
+  duration Int // thoi luong
+  createAt DateTime @default(now())
+
+  playlists PlaylistSong[]
+}
+
+// user table
+model User {
+  id Int @id @default(autoincrement())
+  email String @unique
+  password String
+  name String 
+  playlists Playlist[]
+  createAt DateTime @default(now()) 
+}
+
+// playlist table
+model Playlist {
+  id Int @id @default(autoincrement())
+  title String
+  userId Int
+  user User @relation(fields: [userId],references: [id])
+  songs PlaylistSong[]
+  createAt DateTime @default(now())
+}
+// atrribute table Playlist and Song ( N-M relationship)
+model PlaylistSong {
+  playlistId Int
+  songId Int
+  playlist Playlist @relation(fields: [playlistId],references: [id])
+  song Song @relation(fields: [songId],references: [id])
+  @@id([playlistId,songId])
+}
