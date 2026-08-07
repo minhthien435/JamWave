@@ -1,21 +1,18 @@
 // backend/src/app.js
 const express = require('express');
 const cors = require('cors');
-const { PrismaClient } = require('@prisma/client'); // 1. Khởi tạo Prisma Client
 require('dotenv').config();
+const prisma = require('./lib/prisma');
 
 const app = express();
-const prisma = new PrismaClient(); // 2. Khai báo instance Prisma
 
 app.use(cors());
 app.use(express.json());
 
-// Giữ lại route kiểm tra server cũ của bạn
 app.get('/', (req, res) => {
-    res.send('Itunes API is running....');
+    res.send('Spotify Clone API is running');
 });
 
-// 3. THÊM ROUTE MỚI: API lấy toàn bộ danh sách bài hát từ Database
 app.get('/api/songs', async (req, res) => {
     try {
         const songs = await prisma.song.findMany();
