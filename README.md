@@ -8,7 +8,7 @@ Over **2,400+ songs** and **1,400+ albums**, featuring an **AI Music Assistant C
 
 ---
 
-## 🌐 Live Deployment
+## Deployment
 
 The application is deployed live across modern cloud infrastructure:
 
@@ -18,7 +18,7 @@ The application is deployed live across modern cloud infrastructure:
 
 ---
 
-## 🛠️ Architecture & Tech Stack
+## Architecture & Tech Stack
 
 | Component | Technology | Description |
 |-----------|------------|-------------|
@@ -29,7 +29,7 @@ The application is deployed live across modern cloud infrastructure:
 
 ---
 
-## ✨ Key Features
+## Key Features
 
 - **Music Discovery & Playback:** Full audio player with queue management, shuffle, repeat, volume control, seek bar, and error auto-skip.
 - **Dual Catalog Source Badging:** Clear visual badges distinguishing `Jamendo` and `Audius` tracks across the UI.
@@ -41,7 +41,7 @@ The application is deployed live across modern cloud infrastructure:
 
 ---
 
-## 🚀 Running Locally
+##  Running Locally
 
 ### Prerequisites
 - **Node.js:** v18.x or higher
@@ -78,7 +78,7 @@ Open `http://localhost:5173` in your browser. Vite automatically proxies `/api` 
 
 ---
 
-## 🔐 Environment Variables
+## Environment Variables
 
 ### Backend (`backend/.env`)
 
@@ -100,7 +100,7 @@ Open `http://localhost:5173` in your browser. Vite automatically proxies `/api` 
 
 ---
 
-## 📡 API Reference
+## API Reference
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -117,6 +117,6 @@ Open `http://localhost:5173` in your browser. Vite automatically proxies `/api` 
 
 ---
 
-## 📜 License
+## License
 
 This project is open-source and available under the **ISC License**. Music tracks belong to their respective creators under Creative Commons (Jamendo) and Decentralized Streaming (Audius).
