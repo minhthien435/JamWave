@@ -1,39 +1,35 @@
-# Spotify Clone
+# JamWave - Sóng Nhạc Độc Lập 🎵
 
-A Spotify clone project that replicates the core UI and features: music playback, search, playlists, and liked songs.
+App nghe nhạc (Spotify-like) với **2 thư viện nhạc độc lập miễn phí**:
+- **Jamendo** — 1.500 bài full-length, CC license
+- **Audius** — 942 bài indie decentralized (stream qua discovery node)
+
+Tổng ~2.400 bài, kèm AI music assistant chat-box, playlist, bài hát yêu thích, albums & nghệ sĩ.
 
 ## Architecture
 
-The project is split into two independent parts:
-
 | Part | Tech stack | Description |
 |------|-----------|-------------|
-| `backend/` | Express 5, Prisma 5, PostgreSQL | REST API: songs, auth, playlists, likes |
-| `frontend/` | React 19, Vite 8, Tailwind CSS 3, zustand, react-router-dom | Spotify-like user interface |
-
-```
-Spotify_Clone/
-├── backend/
-│   ├── prisma/          # schema, migrations, seed
-│   └── src/             # Express app (routes, controllers, middleware)
-└── frontend/
-    └── src/
-        ├── api/         # axios client
-        ├── components/  # UI components
-        └── pages/       # Home, Search, Playlist, Likes...
-```
+| `backend/` | Express 5, Prisma 5, PostgreSQL | REST API: songs, auth, playlists, likes, AI chat |
+| `frontend/` | React 19, Vite 8, Tailwind CSS 3, zustand | UI giống Spotify (dark glassmorphism) |
 
 ## Features
 
-- [x] Songs API (`GET /api/songs`)
-- [x] Seed real music data from the iTunes Search API
-- [ ] Music player, search, playlists, likes (in development)
-
-The full roadmap is tracked in the [Issues](https://github.com/minhthien435/Spotify_Clone/issues) section on GitHub.
+- [x] Songs API (`GET /api/songs`) — search (`?q=`), **phân trang** (`?limit=&offset=`), random (`/api/songs/random`)
+- [x] Seed nhạc thật từ Jamendo + Audius (2.400+ bài, 1.400+ album, đánh dấu `source`)
+- [x] JWT authentication (register / login / me)
+- [x] Playlists CRUD (create, view, rename, delete, add/remove songs)
+- [x] Liked songs (like / unlike, list)
+- [x] Music player: queue, shuffle, repeat, seek, volume, prev/next (tự nhảy bài lỗi)
+- [x] Albums & Artists pages (album Audius gộp theo nghệ sĩ "X Essentials")
+- [x] AI music assistant (gợi ý nhạc từ cả 2 nguồn; LLM tùy chọn qua `AI_API_KEY`)
+- [x] Badge nguồn Jamendo/Audius trên toàn UI
+- [x] Rate limiting + validation + CORS theo `CLIENT_ORIGIN`
+- [ ] Premium, sharing, recommendations (future)
 
 ## Run locally
 
-Requirements: **Node.js 18+** and a PostgreSQL database (local or Supabase).
+Requirements: **Node.js 18+** và PostgreSQL (local hoặc Supabase/Neon free).
 
 ### 1. Backend
 
@@ -41,14 +37,14 @@ Requirements: **Node.js 18+** and a PostgreSQL database (local or Supabase).
 cd backend
 npm install
 
-# Create .env from the template (fill in the real DATABASE_URL)
+# Tạo .env từ template (điền DATABASE_URL, JWT_SECRET, JAMENDO_CLIENT_ID)
 cp .env.example .env
 
-# Migrate the database and seed music data
-npx prisma migrate dev
+# Đồng bộ schema (dùng db push cho nhanh, hoặc migrate deploy)
+npx prisma db push
 npm run seed
 
-# Start the dev server (default port 5000)
+# Chạy dev server (mặc định cổng 5000)
 npm run dev
 ```
 
@@ -60,23 +56,49 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:5173` — Vite already proxies `/api` to the backend on port 5000.
+Mở `http://localhost:5173` — Vite tự proxy `/api` sang backend cổng 5000.
+
+### 3. Chạy production (1 cổng duy nhất)
+
+```bash
+cd frontend && npm run build    # tạo frontend/dist
+cd ../backend && npm start      # Express tự phục vụ dist + API trên cùng cổng
+```
+
+Mở `http://localhost:5000`.
 
 ## Environment variables
 
 | Variable | Used by | Required |
 |----------|---------|----------|
 | `DATABASE_URL` | backend (Prisma) | Yes |
-| `PORT` | backend (Express) | No (defaults to 5000) |
-| `JWT_SECRET` | backend (auth, not used yet) | No (needed once auth lands) |
+| `JWT_SECRET` | backend (auth) | Yes |
+| `JAMENDO_CLIENT_ID` | backend (seed) | Yes (chỉ khi seed) |
+| `PORT` | backend (Express) | No (default 5000) |
+| `CLIENT_ORIGIN` | backend (CORS, phân cách dấu phẩy) | No (mở hết khi dev) |
+| `AI_API_KEY` / `AI_BASE_URL` / `AI_MODEL` | backend (AI chat, OpenAI-compatible) | No |
+
+## API endpoints chính
+
+| Method | Path | Mô tả |
+|--------|------|-------|
+| GET | `/api/health` | Health check |
+| GET | `/api/songs?q=&limit=&offset=` | Danh sách bài hát + phân trang `{ songs, total }` |
+| GET | `/api/songs/random?limit=` | Bài hát ngẫu nhiên |
+| GET | `/api/albums` / `/api/albums/:id` | Albums (kèm `source`) |
+| GET | `/api/artists` | Nghệ sĩ |
+| POST | `/api/auth/register` / `/login` | Auth (rate limit 5/phút) |
+| GET | `/api/auth/me` | Thông tin user (JWT) |
+| POST | `/api/ai/chat` | AI assistant (rate limit 20/phút) |
 
 ## Useful scripts
 
 ```bash
 # Backend
 npm run dev        # nodemon
-npm run seed       # seed music from iTunes
-npx prisma studio  # browse the database in the browser
+npm run seed       # seed nhạc từ Jamendo + Audius
+npx prisma studio  # xem DB trên trình duyệt
+npx prisma migrate status
 
 # Frontend
 npm run dev        # vite dev server
