@@ -1,15 +1,19 @@
 # JamWave — Independent Music Streaming 🎵
 
-![React](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=black)
-![Vite](https://img.shields.io/badge/Vite-8-646CFF?style=for-the-badge&logo=vite&logoColor=white)
-![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-3-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)
-![Node.js](https://img.shields.io/badge/Node.js-18+-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)
-![Express](https://img.shields.io/badge/Express-5-000000?style=for-the-badge&logo=express&logoColor=white)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Neon-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
-![Prisma](https://img.shields.io/badge/Prisma-5-2D3748?style=for-the-badge&logo=prisma&logoColor=white)
-![AI Assistant](https://img.shields.io/badge/AI_Assistant-Gemini-8E44AD?style=for-the-badge&logo=googlegemini&logoColor=white)
-![Vercel](https://img.shields.io/badge/Vercel-Frontend-000000?style=for-the-badge&logo=vercel&logoColor=white)
-![Render](https://img.shields.io/badge/Render-Backend-46E3B7?style=for-the-badge&logo=render&logoColor=black)
+![React](https://img.shields.io/badge/React_19-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
+![Vite](https://img.shields.io/badge/Vite_8-1A1A2E?style=for-the-badge&logo=vite&logoColor=646CFF)
+![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS_3-0F172A?style=for-the-badge&logo=tailwindcss&logoColor=38BDF8)
+
+![Node.js](https://img.shields.io/badge/Node.js_18+-0F172A?style=for-the-badge&logo=nodedotjs&logoColor=22C55E)
+![Express](https://img.shields.io/badge/Express_5-111827?style=for-the-badge&logo=express&logoColor=FFFFFF)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL_Neon-0F172A?style=for-the-badge&logo=postgresql&logoColor=38BDF8)
+![Prisma](https://img.shields.io/badge/Prisma_5-1E1B4B?style=for-the-badge&logo=prisma&logoColor=A78BFA)
+
+![Gemini AI](https://img.shields.io/badge/Gemini_AI-312E81?style=for-the-badge&logo=googlegemini&logoColor=8B5CF6)
+![AI Assistant](https://img.shields.io/badge/AI_Assistant-RAG-7C3AED?style=for-the-badge&logo=googlegemini&logoColor=FFFFFF)
+
+![Vercel](https://img.shields.io/badge/Vercel_Frontend-111827?style=for-the-badge&logo=vercel&logoColor=FFFFFF)
+![Render](https://img.shields.io/badge/Render_Backend-064E3B?style=for-the-badge&logo=render&logoColor=46E3B7)
 
 A Spotify-like full-stack music streaming web application powered by **2 free & legal independent music catalog sources**:
 - **Jamendo** — 1,500+ full-length tracks with Creative Commons licensing.
