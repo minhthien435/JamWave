@@ -1,48 +1,156 @@
-datasource db{
-  provider = "postgresql" // cau hinh db
-  url = env("DATABASE_URL")
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
+
 generator client {
   provider = "prisma-client-js"
-
 }
-// song table 
+
+// Album model
+model Album {
+  id        Int      @id @default(autoincrement())
+  title     String
+  artist    String
+  coverImg  String
+  songs     Song[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+// Song model
 model Song {
-  id Int @id @default(autoincrement()) // @id@default (pk)
-  title String 
-  artist String
-  albumCover String // URL anh bia bai hat
-  audioURL String // URL file nhac dang mp3
-  duration Int // thoi luong
-  createAt DateTime @default(now())
-
-  playlists PlaylistSong[]
+  id          Int            @id @default(autoincrement())
+  title       String
+  artist      String
+  albumCover  String
+  audioURL    String
+  duration    Int
+  releaseYear Int?
+  genre       String?
+  source      String?        @default("jamendo")
+  lyrics      String?
+  albumId     Int?
+  album       Album?         @relation(fields: [albumId], references: [id], onDelete: SetNull)
+  playlists   PlaylistSong[]
+  likedBy     UserSong[]
+  listens     SongListen[]
+  lyric       Lyric?
+  // MusicBrainz enrichment (metadata nền, CC0)
+  mbid        String?        // MusicBrainz recording ID
+  isrc        String?        // International Standard Recording Code
+  artistMbid  String?        // MusicBrainz artist ID
+  // Khử trùng: trỏ tới bài hát "chính" cùng track (qua Jamendo/Audius)
+  duplicateOf Int?
+  duplicate   Song?          @relation("SongDuplicates", fields: [duplicateOf], references: [id], onDelete: SetNull)
+  duplicates  Song[]         @relation("SongDuplicates")
+  // Vector embedding (pgvector, Gemini embedding 3072 chiều) cho semantic search
+  // (2442 bài -> seq-scan cosine là đủ nhanh, không cần index HNSW do dim>2000)
+  embedding   Unsupported("vector(3072)")?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @default(now()) @updatedAt
 }
 
-// user table
+// User model
 model User {
-  id Int @id @default(autoincrement())
-  email String @unique
-  password String
-  name String 
-  playlists Playlist[]
-  createAt DateTime @default(now()) 
+  id         Int          @id @default(autoincrement())
+  email      String       @unique
+  password   String
+  name       String
+  role       String       @default("USER")
+  playlists  Playlist[]
+  likedSongs UserSong[]
+  listens    SongListen[]
+  followedArtists UserArtist[]
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @default(now()) @updatedAt
 }
 
-// playlist table
+// Playlist model
 model Playlist {
-  id Int @id @default(autoincrement())
-  title String
-  userId Int
-  user User @relation(fields: [userId],references: [id])
-  songs PlaylistSong[]
-  createAt DateTime @default(now())
+  id        Int            @id @default(autoincrement())
+  title     String
+  isPublic  Boolean        @default(false)
+  userId    Int
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  songs     PlaylistSong[]
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @default(now()) @updatedAt
 }
-// atrribute table Playlist and Song ( N-M relationship)
+
+// Junction table Playlist <-> Song (N-M relationship)
 model PlaylistSong {
   playlistId Int
-  songId Int
-  playlist Playlist @relation(fields: [playlistId],references: [id])
-  song Song @relation(fields: [songId],references: [id])
-  @@id([playlistId,songId])
+  songId     Int
+  playlist   Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  song       Song     @relation(fields: [songId], references: [id], onDelete: Cascade)
+
+  @@id([playlistId, songId])
+}
+
+// Junction table User <-> Song (N-M relationship) - bài hát đã thích
+model UserSong {
+  userId    Int
+  songId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  song      Song     @relation(fields: [songId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([userId, songId])
+}
+
+// Lịch sử nghe nhạc (1 user nghe 1 bài nhiều lần)
+model SongListen {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  songId     Int
+  listenedAt DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  song       Song     @relation(fields: [songId], references: [id], onDelete: Cascade)
+
+  @@index([userId, listenedAt])
+  @@index([songId, listenedAt])
+}
+
+// Lời bài hát cache từ LRCLIB (synced LRC + plain)
+model Lyric {
+  id           Int      @id @default(autoincrement())
+  songId       Int      @unique
+  song         Song     @relation(fields: [songId], references: [id], onDelete: Cascade)
+  plainLyrics  String?
+  syncedLyrics String?
+  instrumental Boolean  @default(false)
+  fetchedAt    DateTime @default(now())
+
+  @@index([fetchedAt])
+}
+
+// Nghệ sĩ người dùng đang theo dõi (nghệ sĩ = tên string, chưa có bảng Artist riêng)
+model UserArtist {
+  userId     Int
+  artistName String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@id([userId, artistName])
+  @@index([artistName])
+}
+
+// Cache ảnh nghệ sĩ (tra cứu từ Jamendo / Audius, TTL 30 ngày)
+model ArtistProfile {
+  name      String   @id
+  imageUrl  String?
+  source    String?
+  fetchedAt DateTime @default(now())
+}
+
+// Cache metadata nghệ sĩ chuẩn hóa từ MusicBrainz (CC0)
+model ArtistMeta {
+  artistMbid String   @id
+  name       String   @unique
+  aliases    String[] @default([])
+  genres     String[] @default([])
+  country    String?
+  yearRange  String?
+  fetchedAt  DateTime @default(now())
 }
