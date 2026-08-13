@@ -1,107 +1,122 @@
-# JamWave - Sóng Nhạc Độc Lập 🎵
+# JamWave — Independent Music Streaming 🎵
 
-App nghe nhạc (Spotify-like) với **2 thư viện nhạc độc lập miễn phí**:
-- **Jamendo** — 1.500 bài full-length, CC license
-- **Audius** — 942 bài indie decentralized (stream qua discovery node)
+A Spotify-like full-stack music streaming web application powered by **2 free & legal independent music catalog sources**:
+- **Jamendo** — 1,500+ full-length tracks with Creative Commons licensing.
+- **Audius** — 940+ decentralized indie tracks streamed directly via discovery nodes.
 
-Tổng ~2.400 bài, kèm AI music assistant chat-box, playlist, bài hát yêu thích, albums & nghệ sĩ.
+Over **2,400+ songs** and **1,400+ albums**, featuring an **AI Music Assistant Chatbot**, interactive music player, playlists, liked songs, album & artist discovery.
 
-## Architecture
+---
 
-| Part | Tech stack | Description |
-|------|-----------|-------------|
-| `backend/` | Express 5, Prisma 5, PostgreSQL | REST API: songs, auth, playlists, likes, AI chat |
-| `frontend/` | React 19, Vite 8, Tailwind CSS 3, zustand | UI giống Spotify (dark glassmorphism) |
+## 🌐 Live Deployment
 
-## Features
+The application is deployed live across modern cloud infrastructure:
 
-- [x] Songs API (`GET /api/songs`) — search (`?q=`), **phân trang** (`?limit=&offset=`), random (`/api/songs/random`)
-- [x] Seed nhạc thật từ Jamendo + Audius (2.400+ bài, 1.400+ album, đánh dấu `source`)
-- [x] JWT authentication (register / login / me)
-- [x] Playlists CRUD (create, view, rename, delete, add/remove songs)
-- [x] Liked songs (like / unlike, list)
-- [x] Music player: queue, shuffle, repeat, seek, volume, prev/next (tự nhảy bài lỗi)
-- [x] Albums & Artists pages (album Audius gộp theo nghệ sĩ "X Essentials")
-- [x] AI music assistant (gợi ý nhạc từ cả 2 nguồn; LLM tùy chọn qua `AI_API_KEY`)
-- [x] Badge nguồn Jamendo/Audius trên toàn UI
-- [x] Rate limiting + validation + CORS theo `CLIENT_ORIGIN`
-- [ ] Premium, sharing, recommendations (future)
+- **Frontend App (Vercel):** Deployed on Vercel with SPA client-side routing & Vite optimizations.
+- **Backend API (Render):** Express 5 REST API running on Render Cloud Services.
+- **Database (Neon PostgreSQL):** Serverless PostgreSQL database hosted on Neon.tech.
 
-## Run locally
+---
 
-Requirements: **Node.js 18+** và PostgreSQL (local hoặc Supabase/Neon free).
+## 🛠️ Architecture & Tech Stack
 
-### 1. Backend
+| Component | Technology | Description |
+|-----------|------------|-------------|
+| **Backend API** | Node.js, Express 5, Prisma ORM 5, PostgreSQL | RESTful API for auth, music discovery, playlists, likes, and AI assistant |
+| **Frontend Web** | React 19, Vite 8, Tailwind CSS 3, Zustand | Spotify-inspired dark glassmorphism UI with responsive design |
+| **Database** | PostgreSQL (Neon.tech) | Relational schema storing users, tracks, playlists, albums, and listens |
+| **AI Assistant** | OpenAI API Compatible (Gemini Flash) | Context-aware music recommendations and natural language search |
+
+---
+
+## ✨ Key Features
+
+- **Music Discovery & Playback:** Full audio player with queue management, shuffle, repeat, volume control, seek bar, and error auto-skip.
+- **Dual Catalog Source Badging:** Clear visual badges distinguishing `Jamendo` and `Audius` tracks across the UI.
+- **AI Music Chatbot Assistant:** Smart conversational AI powered by LLM for music recommendations, mood-based discovery, and queries.
+- **Albums & Artists Pages:** Grouped Audius & Jamendo albums with tracklists and artist detail views.
+- **User Authentication & Authorization:** Secure JWT authentication (Register, Login, Session Persistence).
+- **Playlists & Liked Songs:** Create, rename, delete playlists, and add/remove songs from personal libraries.
+- **Security & Robustness:** Rate limiting (`express-rate-limit` with proxy trust), CORS protection, input validation, and centralized error handling.
+
+---
+
+## 🚀 Running Locally
+
+### Prerequisites
+- **Node.js:** v18.x or higher
+- **Database:** PostgreSQL instance (Local PostgreSQL, Neon, or Supabase)
+
+### 1. Backend Setup
 
 ```bash
 cd backend
 npm install
 
-# Tạo .env từ template (điền DATABASE_URL, JWT_SECRET, JAMENDO_CLIENT_ID)
+# Create environment configuration from template
 cp .env.example .env
 
-# Đồng bộ schema (dùng db push cho nhanh, hoặc migrate deploy)
-npx prisma db push
+# Apply database migrations & seed initial catalog
+npx prisma migrate deploy
 npm run seed
 
-# Chạy dev server (mặc định cổng 5000)
+# Run Development Server (Default port: 5000)
 npm run dev
 ```
 
-### 2. Frontend
+### 2. Frontend Setup
 
 ```bash
 cd frontend
 npm install
+
+# Run Vite Development Server (Default port: 5173)
 npm run dev
 ```
 
-Mở `http://localhost:5173` — Vite tự proxy `/api` sang backend cổng 5000.
+Open `http://localhost:5173` in your browser. Vite automatically proxies `/api` requests to the backend at `http://localhost:5000`.
 
-### 3. Chạy production (1 cổng duy nhất)
+---
 
-```bash
-cd frontend && npm run build    # tạo frontend/dist
-cd ../backend && npm start      # Express tự phục vụ dist + API trên cùng cổng
-```
+## 🔐 Environment Variables
 
-Mở `http://localhost:5000`.
+### Backend (`backend/.env`)
 
-## Environment variables
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `DATABASE_URL` | PostgreSQL connection string | Yes |
+| `JWT_SECRET` | Secret key for signing JWT tokens | Yes |
+| `PORT` | Backend server port (Default: `5000`) | No |
+| `CLIENT_ORIGIN` | Allowed CORS origins (comma-separated) | No |
+| `AI_API_KEY` | Gemini / OpenAI-compatible API key for AI chat | Optional |
+| `AI_BASE_URL` | Custom OpenAI-compatible endpoint URL | Optional |
+| `AI_MODEL` | Target AI model name (e.g. `gemini-flash-latest`) | Optional |
 
-| Variable | Used by | Required |
-|----------|---------|----------|
-| `DATABASE_URL` | backend (Prisma) | Yes |
-| `JWT_SECRET` | backend (auth) | Yes |
-| `JAMENDO_CLIENT_ID` | backend (seed) | Yes (chỉ khi seed) |
-| `PORT` | backend (Express) | No (default 5000) |
-| `CLIENT_ORIGIN` | backend (CORS, phân cách dấu phẩy) | No (mở hết khi dev) |
-| `AI_API_KEY` / `AI_BASE_URL` / `AI_MODEL` | backend (AI chat, OpenAI-compatible) | No |
+### Frontend (`frontend/.env`)
 
-## API endpoints chính
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `VITE_API_URL` | Backend REST API endpoint URL | `/api` |
 
-| Method | Path | Mô tả |
-|--------|------|-------|
-| GET | `/api/health` | Health check |
-| GET | `/api/songs?q=&limit=&offset=` | Danh sách bài hát + phân trang `{ songs, total }` |
-| GET | `/api/songs/random?limit=` | Bài hát ngẫu nhiên |
-| GET | `/api/albums` / `/api/albums/:id` | Albums (kèm `source`) |
-| GET | `/api/artists` | Nghệ sĩ |
-| POST | `/api/auth/register` / `/login` | Auth (rate limit 5/phút) |
-| GET | `/api/auth/me` | Thông tin user (JWT) |
-| POST | `/api/ai/chat` | AI assistant (rate limit 20/phút) |
+---
 
-## Useful scripts
+## 📡 API Reference
 
-```bash
-# Backend
-npm run dev        # nodemon
-npm run seed       # seed nhạc từ Jamendo + Audius
-npx prisma studio  # xem DB trên trình duyệt
-npx prisma migrate status
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/health` | Service health status check |
+| `GET` | `/api/songs?q=&limit=&offset=` | Paginated songs list & search |
+| `GET` | `/api/songs/random?limit=` | Get random songs for discovery |
+| `GET` | `/api/albums` | Get all albums with source badges |
+| `GET` | `/api/albums/:id` | Get album details and tracklist |
+| `GET` | `/api/artists` | Get artist directory |
+| `POST` | `/api/auth/register` | User registration |
+| `POST` | `/api/auth/login` | User login |
+| `GET` | `/api/auth/me` | Current authenticated user session |
+| `POST` | `/api/ai/chat` | AI music assistant conversational query |
 
-# Frontend
-npm run dev        # vite dev server
-npm run build      # production build
-npm run lint       # eslint
-```
+---
+
+## 📜 License
+
+This project is open-source and available under the **ISC License**. Music tracks belong to their respective creators under Creative Commons (Jamendo) and Decentralized Streaming (Audius).
