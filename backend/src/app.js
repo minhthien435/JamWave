@@ -26,6 +26,10 @@ if (!process.env.JWT_SECRET) {
 
 const app = express();
 
+// Bật trust proxy khi chạy sau Reverse Proxy (Render/Vercel/Cloudflare) để express-rate-limit đọc IP đúng
+app.set('trust proxy', 1);
+
+
 // CORS: chỉ cho phép origin được cấu hình (CLIENT_ORIGIN). Không set = mở tất cả (dev)
 const allowedOrigins = process.env.CLIENT_ORIGIN
     ? process.env.CLIENT_ORIGIN.split(',').map((s) => s.trim()).filter(Boolean)
