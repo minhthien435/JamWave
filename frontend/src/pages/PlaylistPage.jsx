@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   MusicNotes,
@@ -15,13 +16,22 @@ import {
   Queue,
   DownloadSimple,
   UploadSimple,
+  MagnifyingGlass,
 } from "@phosphor-icons/react";
+
+const formatDuration = (seconds) => {
+  if (!seconds || isNaN(seconds)) return "--:--";
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins}:${secs.toString().padStart(2, "0")}`;
+};
 import { usePlayerStore } from "../usePlayerStore";
 import { useAuthStore } from "../useAuthStore";
 import { useLibraryStore } from "../useLibraryStore";
 import SongTable from "../components/SongTable";
 import SourceBadge from "../components/SourceBadge";
 import { useToast } from "../components/ToastContext";
+import { useDownloadStore } from "../useDownloadStore";
 import {
   fetchPlaylist,
   fetchSharedPlaylist,
@@ -57,8 +67,11 @@ function PlaylistView({ id }) {
   const [copied, setCopied] = useState(false);
 
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [allSongs, setAllSongs] = useState([]);
   const [addingSongId, setAddingSongId] = useState(null);
+  const [addSearchQuery, setAddSearchQuery] = useState("");
   const [renameMode, setRenameMode] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [uploadingCover, setUploadingCover] = useState(false);
@@ -173,13 +186,16 @@ function PlaylistView({ id }) {
   };
 
   const handleDeletePlaylist = async () => {
-    if (!window.confirm(`Xóa playlist "${playlist.title}"?`)) return;
+    setDeleting(true);
     try {
       await deletePlaylist(playlist.id);
       await loadPlaylists();
+      toastSuccess(`Đã xóa playlist "${playlist.title}"`);
       navigate("/");
     } catch (err) {
       toastError(err.message);
+      setDeleting(false);
+      setShowDeleteModal(false);
     }
   };
 
@@ -225,10 +241,29 @@ function PlaylistView({ id }) {
   const handleDownloadZip = async () => {
     if (downloadingZip) return;
     setDownloadingZip(true);
+
+    const abortController = new AbortController();
+    useDownloadStore.getState().startDownload({
+      title: `${playlist.title} (${playlist.songs?.length || 0} bản thu)`,
+      type: "playlist",
+      abortController,
+    });
+
     try {
-      await downloadPlaylist(playlist.id, `${playlist.title}.zip`);
+      const filename = await downloadPlaylist(
+        playlist.id,
+        `${playlist.title}.zip`,
+        (progressData) => {
+          useDownloadStore.getState().updateProgress(progressData);
+        },
+        abortController.signal
+      );
+      useDownloadStore.getState().finishDownload(filename);
     } catch (err) {
-      toastError(err.message);
+      if (err.message !== "Đã hủy tải xuống") {
+        useDownloadStore.getState().failDownload(err.message);
+        toastError(err.message);
+      }
     } finally {
       setDownloadingZip(false);
     }
@@ -418,7 +453,7 @@ function PlaylistView({ id }) {
                   </button>
 
                   <button
-                    onClick={handleDeletePlaylist}
+                    onClick={() => setShowDeleteModal(true)}
                     className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-red-300 border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 transition-all active:scale-95"
                   >
                     <Trash size={14} />
@@ -443,74 +478,238 @@ function PlaylistView({ id }) {
       </div>
 
       {/* Modal thêm bài hát */}
-      {showAddModal && (
-        <div
-          className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4"
-          onClick={() => setShowAddModal(false)}
-        >
+      {showAddModal &&
+        createPortal(
           <div
-            className="indie-panel rounded-2xl w-full max-w-lg max-h-[80vh] flex flex-col shadow-2xl border-dashed-indie overflow-hidden font-sans"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 z-[100] bg-black/25 backdrop-blur-sm flex items-start justify-center p-4 pt-12 sm:pt-16 pb-32 animate-fade-in"
+            onClick={() => {
+              setShowAddModal(false);
+              setAddSearchQuery("");
+            }}
           >
-            <div className="flex items-center justify-between px-5 py-3.5 border-b border-dashed-indie bg-[#26211C]">
-              <h3 className="font-mono text-xs font-bold uppercase tracking-wider text-[#EDE6D6] flex items-center gap-2">
-                <Queue size={16} weight="duotone" className="text-[#D97C54]" />
-                Thêm bản thu vào "{playlist.title}"
-              </h3>
-              <button
-                onClick={() => setShowAddModal(false)}
-                className="text-[#A39282] hover:text-[#EDE6D6] p-1 rounded-lg hover:bg-[#2E2721] transition-colors"
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-3 space-y-1">
-              {allSongs.length === 0 ? (
-                <div className="flex items-center justify-center py-10 text-[#D97C54]">
-                  <SpinnerGap size={24} className="animate-spin" />
+            <div
+              className="indie-panel rounded-2xl w-full max-w-2xl max-h-[76vh] flex flex-col shadow-2xl border-dashed-indie overflow-hidden font-sans"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div className="flex items-center justify-between px-5 py-4 border-b border-dashed-indie bg-[#26211C]">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-lg bg-[#2E2721] border border-[#EDE6D6]/15 flex items-center justify-center text-[#D97C54] flex-shrink-0">
+                    <Queue size={18} weight="duotone" />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="font-mono text-xs font-bold uppercase tracking-wider text-[#EDE6D6] truncate">
+                      Thêm bản thu vào playlist
+                    </h3>
+                    <p className="font-serif italic text-xs text-[#A39282] truncate">"{playlist.title}"</p>
+                  </div>
                 </div>
-              ) : (
-                allSongs.map((song) => {
-                  const isAdded = selectedSongIds.has(song.id);
-                  return (
-                    <div
-                      key={song.id}
-                      className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-[#26211C] transition-all"
+                <button
+                  onClick={() => {
+                    setShowAddModal(false);
+                    setAddSearchQuery("");
+                  }}
+                  className="text-[#A39282] hover:text-[#EDE6D6] p-1.5 rounded-lg hover:bg-[#2E2721] transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Search Bar in Modal */}
+              <div className="p-3.5 border-b border-dashed-indie bg-[#1E1A17]">
+                <div className="relative">
+                  <MagnifyingGlass
+                    size={16}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8A7B6C]"
+                  />
+                  <input
+                    type="text"
+                    value={addSearchQuery}
+                    onChange={(e) => setAddSearchQuery(e.target.value)}
+                    placeholder="Tìm theo tên bài hát, nghệ sĩ..."
+                    className="w-full bg-[#26211C] border border-[#EDE6D6]/15 rounded-xl pl-9 pr-8 py-2 text-xs text-[#EDE6D6] placeholder-[#8A7B6C] focus:outline-none focus:border-[#D97C54] transition-colors"
+                  />
+                  {addSearchQuery && (
+                    <button
+                      onClick={() => setAddSearchQuery("")}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#8A7B6C] hover:text-[#EDE6D6] p-0.5"
                     >
-                      <img src={song.albumCover} alt={song.title} loading="lazy" className="w-9 h-9 rounded object-cover flex-shrink-0 shadow-sm" />
-                      <div className="truncate flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          <p className="font-serif italic text-xs font-semibold truncate text-[#EDE6D6]">{song.title}</p>
-                          <SourceBadge source={song.source} />
-                        </div>
-                        <p className="font-mono text-[10px] text-[#A39282] truncate mt-0.5">{song.artist}</p>
+                      <X size={13} />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Modal Song List */}
+              <div className="flex-1 overflow-y-auto p-3 space-y-1.5 min-h-[260px]">
+                {allSongs.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-[#D97C54] gap-2">
+                    <SpinnerGap size={28} className="animate-spin" />
+                    <p className="font-mono text-xs text-[#A39282]">Đang tải kho nhạc...</p>
+                  </div>
+                ) : (() => {
+                  const filteredSongs = allSongs.filter((song) => {
+                    if (!addSearchQuery.trim()) return true;
+                    const q = addSearchQuery.toLowerCase();
+                    return (
+                      song.title?.toLowerCase().includes(q) ||
+                      song.artist?.toLowerCase().includes(q)
+                    );
+                  });
+
+                  if (filteredSongs.length === 0) {
+                    return (
+                      <div className="text-center py-14 text-[#8A7B6C] font-mono text-xs">
+                        Không tìm thấy bài hát nào khớp với "{addSearchQuery}"
                       </div>
-                      <button
-                        onClick={() => handleAddSong(song)}
-                        disabled={isAdded || addingSongId === song.id}
-                        className={`font-mono text-xs px-3.5 py-1.5 rounded-lg transition-all flex-shrink-0 ${
-                          isAdded
-                            ? "bg-[#26211C] text-[#8A7B6C] cursor-default border border-[#EDE6D6]/10"
-                            : "bg-[#B85C38] hover:bg-[#D97C54] text-[#EDE6D6] shadow-sm active:scale-95"
-                        }`}
+                    );
+                  }
+
+                  return filteredSongs.map((song) => {
+                    const isAdded = selectedSongIds.has(song.id);
+                    const isAdding = addingSongId === song.id;
+
+                    return (
+                      <div
+                        key={song.id}
+                        className="flex items-center justify-between gap-3 px-3 py-2 rounded-xl hover:bg-[#26211C] transition-colors border border-transparent hover:border-[#EDE6D6]/5 group"
                       >
-                        {addingSongId === song.id ? (
-                          <SpinnerGap size={12} className="animate-spin" />
-                        ) : isAdded ? (
-                          "Đã ghi"
-                        ) : (
-                          "Ghi nhạc"
-                        )}
-                      </button>
-                    </div>
-                  );
-                })
-              )}
+                        {/* Left: Thumbnail & Song Info */}
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <img
+                            src={song.albumCover}
+                            alt={song.title}
+                            loading="lazy"
+                            className="w-11 h-11 rounded-lg object-cover flex-shrink-0 shadow-sm border border-[#EDE6D6]/10"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="font-sans text-sm font-medium text-[#EDE6D6] truncate leading-tight">
+                                {song.title}
+                              </span>
+                              <SourceBadge source={song.source} />
+                            </div>
+                            <p className="font-mono text-xs text-[#A39282] truncate mt-0.5">
+                              {song.artist}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Right: Duration & Add Button */}
+                        <div className="flex items-center gap-3 flex-shrink-0">
+                          {song.duration > 0 && (
+                            <span className="font-mono text-xs text-[#8A7B6C] tabular-nums hidden sm:inline">
+                              {formatDuration(song.duration)}
+                            </span>
+                          )}
+                          <button
+                            onClick={() => handleAddSong(song)}
+                            disabled={isAdded || isAdding}
+                            className={`font-mono text-xs px-3.5 py-1.5 rounded-xl transition-all flex items-center gap-1.5 min-w-[84px] justify-center ${
+                              isAdded
+                                ? "bg-[#26211C] text-[#8A7B6C] cursor-default border border-[#EDE6D6]/10"
+                                : "bg-[#B85C38] hover:bg-[#D97C54] text-[#EDE6D6] shadow-sm active:scale-95 border border-[#EDE6D6]/15"
+                            }`}
+                          >
+                            {isAdding ? (
+                              <>
+                                <SpinnerGap size={13} className="animate-spin text-[#EDE6D6]" />
+                                <span>Ghi...</span>
+                              </>
+                            ) : isAdded ? (
+                              <>
+                                <Check size={13} weight="bold" className="text-[#55B37E]" />
+                                <span>Đã thêm</span>
+                              </>
+                            ) : (
+                              <>
+                                <Plus size={13} weight="bold" />
+                                <span>Thêm nhạc</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="px-5 py-2.5 border-t border-dashed-indie bg-[#26211C] flex items-center justify-between text-[11px] font-mono text-[#8A7B6C]">
+                <span>Kho nhạc: {allSongs.length} bản thu</span>
+                <button
+                  onClick={() => {
+                    setShowAddModal(false);
+                    setAddSearchQuery("");
+                  }}
+                  className="hover:text-[#EDE6D6] transition-colors"
+                >
+                  Đóng
+                </button>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
+
+      {/* Modal Xác nhận Xóa Playlist */}
+      {showDeleteModal &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[100] bg-black/25 backdrop-blur-sm flex items-start justify-center p-4 pt-20 sm:pt-28 pb-32 animate-fade-in font-sans"
+            onClick={() => !deleting && setShowDeleteModal(false)}
+          >
+            <div
+              className="indie-panel rounded-2xl p-6 w-full max-w-md shadow-2xl border border-red-500/25"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-start gap-4">
+                <div className="w-11 h-11 rounded-xl bg-red-500/15 border border-red-500/30 flex items-center justify-center text-red-400 flex-shrink-0 shadow-sm">
+                  <Trash size={22} weight="duotone" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-serif italic font-bold text-lg text-[#EDE6D6]">
+                    Xác nhận xóa playlist
+                  </h3>
+                  <p className="text-xs text-[#A39282] mt-2 leading-relaxed">
+                    Bạn có chắc chắn muốn xóa playlist <span className="text-[#EDE6D6] font-medium font-serif italic">"{playlist.title}"</span> không? Toàn bộ danh sách bài hát bên trong sẽ bị gỡ bỏ và không thể khôi phục.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-dashed-indie">
+                <button
+                  type="button"
+                  disabled={deleting}
+                  onClick={() => setShowDeleteModal(false)}
+                  className="font-mono text-xs px-4 py-2.5 rounded-xl text-[#A39282] hover:text-[#EDE6D6] bg-[#26211C] hover:bg-[#2E2721] border border-[#EDE6D6]/10 transition-colors disabled:opacity-50"
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  type="button"
+                  disabled={deleting}
+                  onClick={handleDeletePlaylist}
+                  className="font-mono text-xs font-bold uppercase tracking-wider px-4 py-2.5 rounded-xl bg-red-600/90 hover:bg-red-600 text-white shadow-md active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50"
+                >
+                  {deleting ? (
+                    <>
+                      <SpinnerGap size={14} className="animate-spin" />
+                      <span>Đang xóa...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Trash size={14} weight="bold" />
+                      <span>Xóa vĩnh viễn</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 }
