@@ -16,6 +16,7 @@ import {
   SpinnerGap,
   CassetteTape,
   BookmarkSimple,
+  ShieldCheck,
 } from "@phosphor-icons/react";
 import { useAuthStore } from "../useAuthStore";
 import { useLibraryStore } from "../useLibraryStore";
@@ -76,6 +77,9 @@ export default function Sidebar() {
     { to: "/albums", label: "Album Đặc Sắc", icon: Disc },
     { to: "/artists", label: "Nghệ Sĩ Độc Lập", icon: MicrophoneStage },
     { to: "/docs", label: "Sổ Tay AI", icon: Books },
+    ...(user?.role === "ADMIN"
+      ? [{ to: "/admin", label: "Quản Trị Hệ Thống", icon: ShieldCheck, highlight: true }]
+      : []),
   ];
 
   return (
@@ -102,14 +106,18 @@ export default function Sidebar() {
 
         {/* Navigation Items */}
         <nav className="flex flex-col gap-1 mt-0.5 font-mono text-xs">
-          {navItems.map(({ to, label, icon: Icon, end }) => (
+          {navItems.map(({ to, label, icon: Icon, end, highlight }) => (
             <NavLink
               key={to}
               to={to}
               end={end}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-2 rounded-xl transition-colors duration-200 ${
-                  isActive
+                  highlight
+                    ? isActive
+                      ? "text-amber-300 bg-amber-500/15 font-semibold border border-amber-500/30 shadow-sm"
+                      : "text-amber-400/80 hover:text-amber-300 hover:bg-amber-500/10 border border-amber-500/20"
+                    : isActive
                     ? "text-[#EDE6D6] bg-[#2E2721] font-semibold border border-[#EDE6D6]/15 shadow-sm"
                     : "text-[#A39282] hover:text-[#EDE6D6] hover:bg-[#26211C]"
                 }`
@@ -120,11 +128,19 @@ export default function Sidebar() {
                   <Icon
                     size={17}
                     weight={isActive ? "fill" : "regular"}
-                    className={`transition-colors duration-200 ${isActive ? "text-[#D97C54]" : "text-[#8A7B6C]"}`}
+                    className={`transition-colors duration-200 ${
+                      highlight
+                        ? isActive
+                          ? "text-amber-300"
+                          : "text-amber-400/80"
+                        : isActive
+                        ? "text-[#D97C54]"
+                        : "text-[#8A7B6C]"
+                    }`}
                   />
                   <span className="truncate flex-1">{label}</span>
                   {isActive && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#D97C54]" />
+                    <span className={`w-1.5 h-1.5 rounded-full ${highlight ? "bg-amber-400" : "bg-[#D97C54]"}`} />
                   )}
                 </>
               )}
