@@ -36,6 +36,34 @@ export default function App() {
     return () => window.removeEventListener("jamwave:unauthorized", onUnauthorized);
   }, [bootstrap, forceLogout]);
 
+  // Hỗ trợ phím F11 để Bật/Tắt Toàn Màn Hình (Fullscreen) trên cả Desktop App và Web
+  useEffect(() => {
+    const handleKeyDown = async (e) => {
+      if (e.key === "F11") {
+        e.preventDefault();
+        try {
+          if (window.__TAURI_INTERNALS__ || window.__TAURI__) {
+            const { getCurrentWindow } = await import("@tauri-apps/api/window");
+            const appWindow = getCurrentWindow();
+            const isFull = await appWindow.isFullscreen();
+            await appWindow.setFullscreen(!isFull);
+            return;
+          }
+        } catch {
+          // fallback
+        }
+
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen?.().catch(() => {});
+        } else {
+          document.exitFullscreen?.().catch(() => {});
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
