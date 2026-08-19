@@ -1,8 +1,14 @@
 const prisma = require("../lib/prisma");
 const { ZipArchive } = require("archiver");
 const axios = require("axios");
+const https = require("https");
+const http = require("http");
 const jwt = require("jsonwebtoken");
 const { deleteUploadedFile } = require("../middlewares/upload");
+
+// Agents buộc IPv4 cho mọi outbound request tới Jamendo (tránh ENETUNREACH trên IPv6)
+const ipv4HttpAgent  = new http.Agent({  family: 4, keepAlive: false });
+const ipv4HttpsAgent = new https.Agent({ family: 4, keepAlive: false });
 
 // Sanitize tên file tải về (bỏ ký tự đặc biệt không hợp lệ trong tên file)
 function sanitizeFile(name) {
@@ -446,6 +452,86 @@ const uploadPlaylistCover = async (req, res) => {
   }
 };
 
+function getAudioCandidateUrls(audioURL) {
+  const urls = [];
+  if (!audioURL) return urls;
+  const jamMatch = audioURL.match(/trackid=([0-9]+)/i) || audioURL.match(/\/track\/([0-9]+)/i);
+  if (jamMatch && jamMatch[1]) {
+    urls.push(`https://mp3d.jamendo.com/download/track/${jamMatch[1]}/mp32/`);
+    urls.push(`https://mp3d.jamendo.com/?trackid=${jamMatch[1]}&format=mp32`);
+  }
+  if (!audioURL.includes("prod-1.storage.jamendo.com")) {
+    urls.push(audioURL);
+  }
+  return urls;
+}
+
+// Tải một file âm thanh về dạng Buffer, ưu tiên các URL thay thế, bắt buộc IPv4
+async function fetchAudioBuffer(audioURL, timeoutMs = 50000) {
+  const candidates = getAudioCandidateUrls(audioURL);
+
+  function downloadUrl(url) {
+    return new Promise((resolve, reject) => {
+      const urlObj = new URL(url);
+      const mod = urlObj.protocol === "https:" ? https : http;
+      const agent = urlObj.protocol === "https:" ? ipv4HttpsAgent : ipv4HttpAgent;
+
+      const req = mod.get(
+        url,
+        {
+          agent,
+          headers: {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) JamWave/1.0",
+            Accept: "audio/mpeg, audio/*, */*",
+          },
+        },
+        (res) => {
+          // Xử lý redirect
+          if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+            res.resume();
+            resolve(downloadUrl(res.headers.location));
+            return;
+          }
+          if (res.statusCode < 200 || res.statusCode >= 300) {
+            res.resume();
+            reject(new Error(`HTTP ${res.statusCode}`));
+            return;
+          }
+          const chunks = [];
+          res.on("data", (chunk) => chunks.push(chunk));
+          res.on("end", () => {
+            const buf = Buffer.concat(chunks);
+            if (buf.length === 0) reject(new Error("Empty response"));
+            else resolve(buf);
+          });
+          res.on("error", reject);
+        }
+      );
+
+      const timer = setTimeout(() => {
+        req.destroy(new Error(`Timeout sau ${timeoutMs}ms`));
+      }, timeoutMs);
+
+      req.on("error", (err) => {
+        clearTimeout(timer);
+        reject(err);
+      });
+      req.on("close", () => clearTimeout(timer));
+    });
+  }
+
+  let lastError = null;
+  for (const url of candidates) {
+    try {
+      const buf = await downloadUrl(url);
+      if (buf && buf.length > 0) return buf;
+    } catch (err) {
+      lastError = err;
+    }
+  }
+  throw lastError || new Error("Không lấy được file âm thanh");
+}
+
 // 11. Tải playlist dưới dạng ZIP (chủ sở hữu hoặc playlist công khai)
 const downloadPlaylist = async (req, res) => {
   try {
@@ -486,24 +572,37 @@ const downloadPlaylist = async (req, res) => {
     });
     archive.pipe(res);
 
-    // Nén từng bài (stream trực tiếp từ nguồn — không tốn RAM cho toàn file)
-    let index = 1;
-    for (const song of songs) {
-      const fname = `${String(index).padStart(2, "0")} - ${sanitizeFile(song.title)} - ${sanitizeFile(song.artist)}.mp3`;
-      index += 1;
-      try {
-        const upstream = await axios.get(song.audioURL, {
-          responseType: "stream",
-          timeout: 20000,
-          maxRedirects: 5,
-        });
-        archive.append(upstream.data, { name: fname });
-      } catch (err) {
-        console.error(`Không lấy được file "${song.title}":`, err.message);
+    // Tải song song tối đa 2 bài cùng lúc để giảm thời gian chờ
+    const CONCURRENCY = 2;
+    const results = new Array(songs.length); // giữ thứ tự bài hát
+
+    for (let i = 0; i < songs.length; i += CONCURRENCY) {
+      const batch = songs.slice(i, i + CONCURRENCY);
+      await Promise.allSettled(
+        batch.map(async (song, batchIdx) => {
+          const globalIdx = i + batchIdx;
+          const fname = `${String(globalIdx + 1).padStart(2, "0")} - ${sanitizeFile(song.title)} - ${sanitizeFile(song.artist)}.mp3`;
+          try {
+            console.log(`[ZIP] Tải (${globalIdx + 1}/${songs.length}): ${song.title}...`);
+            const buffer = await fetchAudioBuffer(song.audioURL);
+            results[globalIdx] = { buffer, fname };
+            console.log(`[ZIP] OK: ${fname} (${(buffer.length / 1024 / 1024).toFixed(2)} MB)`);
+          } catch (err) {
+            console.error(`[ZIP] Bỏ qua "${song.title}":`, err.message);
+            results[globalIdx] = null;
+          }
+        })
+      );
+    }
+
+    // Append tất cả buffer vào archive theo đúng thứ tự
+    for (const item of results) {
+      if (item) {
+        archive.append(item.buffer, { name: item.fname });
       }
     }
 
-    archive.finalize();
+    await archive.finalize();
   } catch (error) {
     console.error("Lỗi download playlist:", error);
     if (!res.headersSent) {
