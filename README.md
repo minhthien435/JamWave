@@ -117,18 +117,18 @@ Open `http://localhost:5173` in your browser. Vite automatically proxies `/api` 
 
 ## API Reference
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/health` | Service health status check |
-| `GET` | `/api/songs?q=&limit=&offset=` | Paginated songs list & search |
-| `GET` | `/api/songs/random?limit=` | Get random songs for discovery |
-| `GET` | `/api/albums` | Get all albums with source badges |
-| `GET` | `/api/albums/:id` | Get album details and tracklist |
-| `GET` | `/api/artists` | Get artist directory |
-| `POST` | `/api/auth/register` | User registration |
-| `POST` | `/api/auth/login` | User login |
-| `GET` | `/api/auth/me` | Current authenticated user session |
-| `POST` | `/api/ai/chat` | AI music assistant conversational query |
+| Method | Endpoint                       | Description                             |
+| --------| --------------------------------| -----------------------------------------|
+| `GET`  | `/api/health`                  | Service health status check             |
+| `GET`  | `/api/songs?q=&limit=&offset=` | Paginated songs list & search           |
+| `GET`  | `/api/songs/random?limit=`     | Get random songs for discovery          |
+| `GET`  | `/api/albums`                  | Get all albums with source badges       |
+| `GET`  | `/api/albums/:id`              | Get album details and tracklist         |
+| `GET`  | `/api/artists`                 | Get artist directory                    |
+| `POST` | `/api/auth/register`           | User registration                       |
+| `POST` | `/api/auth/login`              | User login                              |
+| `GET`  | `/api/auth/me`                 | Current authenticated user session      |
+| `POST` | `/api/ai/chat`                 | AI music assistant conversational query |
 
 ---
 
