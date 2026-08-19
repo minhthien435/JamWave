@@ -153,7 +153,15 @@ const getSongs = async (req, res) => {
     const [songs, total] = await Promise.all([
       prisma.song.findMany({
         where,
-        include: { _count: { select: { listens: true, likes: true } } },
+        select: {
+          id: true,
+          title: true,
+          artist: true,
+          source: true,
+          albumCover: true,
+          duration: true,
+          _count: { select: { listens: true, likedBy: true } },
+        },
         orderBy: { id: "asc" },
         skip: (page - 1) * limit,
         take: limit,
@@ -166,8 +174,10 @@ const getSongs = async (req, res) => {
       title: s.title,
       artist: s.artist,
       source: s.source,
+      albumCover: s.albumCover,
+      duration: s.duration,
       listenCount: s._count.listens,
-      likeCount: s._count.likes,
+      likeCount: s._count.likedBy,
     }));
 
     return res.status(200).json({ songs: formatted, total, page, limit });
