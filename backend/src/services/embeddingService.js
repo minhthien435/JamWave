@@ -21,10 +21,60 @@ function normalize(v) {
     .trim();
 }
 
+// Genre -> từ khóa mô tả mood (VI + EN) để semantic search hiểu "cảm xúc" của bài.
+// Song chỉ embed title+artist+genre -> query kiểu "mưa đêm buồn" không khớp được gì.
+const GENRE_MOODS = {
+  chillout: "thư giãn chill calm nhẹ nhàng buồn mưa đêm relax",
+  ambient: "thư giãn calm không gian yên tĩnh nền nhạc nền space",
+  lounge: "thư giãn chill calm thư thái lounge",
+  downtempo: "chậm rãi thư giãn calm chill buồn",
+  relaxation: "thư giãn calm yên tĩnh ngủ dễ chịu",
+  piano: "nhẹ nhàng buồn tình cảm calm piano",
+  electronic: "mạnh mẽ energetic sôi động hiện đại dance",
+  dance: "mạnh mẽ energetic vũ trường party sôi động club",
+  edm: "mạnh mẽ energetic party hội hè sôi động",
+  house: "mạnh mẽ energetic club dance sôi động",
+  techno: "mạnh mẽ energetic club công nghệ tối",
+  trance: "mạnh mẽ energetic bay bổng trip",
+  hiphop: "mạnh mẽ chất rap street phố",
+  rap: "mạnh mẽ chất rap street phố",
+  phonk: "mạnh mẽ tối dark gắt workout",
+  "hip-hop": "mạnh mẽ chất rap street phố",
+  rock: "mạnh mẽ guitar năng lượng phấn khích",
+  metal: "mạnh mẽ guitar nặng phấn khích dữ dội",
+  pop: "vui tươi happy sôi động mainstream",
+  funk: "vui nhộn retro sôi nổi sảng khoái",
+  reggae: "vui vẻ thư giãn nắng biển",
+  world: "vui vẻ khám phá nhiệt đới exotic",
+  acoustic: "mộc mạc nhẹ nhàng tình cảm ballad",
+  ballad: "nhẹ nhàng tình cảm buồn sâu lắng",
+  jazz: "thư giãn sang trọng jazz đêm tình cảm",
+  blues: "buồn da diết tâm trạng sâu lắng",
+  classical: "thư giãn trang nghiêm cổ điển thanh bình",
+  instrumental: "nhạc cụ không lời nền tập trung",
+  lofi: "học tập study focus chill hip hop nhẹ",
+  chillhop: "học tập study focus chill hip hop nhẹ",
+  rnb: "tình cảm lãng mạn smooth mượt",
+  soul: "tình cảm ấm áp soulful sâu lắng",
+  synthwave: "retro hoài niệm night đêm tương lai",
+  dream: "mộng mơ bay bổng ethereal ảo",
+  "singer-songwriter": "tình cảm gần gũi trữ tình acoustic",
+  dark: "tối tăm dark huyền bí",
+  trap: "mạnh mẽ hiện đại tối street",
+  country: "mộc mạc đồng quê giản dị",
+  latin: "sôi động vui vẻ nhiệt đới",
+  "hip-hop/rap": "mạnh mẽ chất rap street phố",
+};
+
 // Văn bản "thuần" để embed cho 1 bài hát
 function songEmbeddingText(song) {
+  const genreWords = (song.genre || "")
+    .split(",")
+    .map((g) => GENRE_MOODS[g.trim().toLowerCase()])
+    .filter(Boolean)
+    .join(", ");
   return normalize(
-    [song.title, song.artist, song.genre].filter(Boolean).join("\n") || "untitled"
+    [song.title, song.artist, song.genre, genreWords].filter(Boolean).join("\n") || "untitled"
   );
 }
 
@@ -100,4 +150,4 @@ async function embedText(text) {
   return vecs ? vecs[0] : null;
 }
 
-module.exports = { embedText, embedBatch, songEmbeddingText, EMBED_DIM, hasKey: Boolean(AI_API_KEY) };
+module.exports = { embedText, embedBatch, songEmbeddingText, GENRE_MOODS, EMBED_DIM, hasKey: Boolean(AI_API_KEY) };

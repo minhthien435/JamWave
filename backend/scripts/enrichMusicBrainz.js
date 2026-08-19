@@ -34,10 +34,18 @@ async function enrichArtists() {
       continue;
     }
 
-    const result = await searchArtist(artist);
+    let result = null;
+    try {
+      result = await searchArtist(artist);
+    } catch (error) {
+      console.log(`  LỖI nghệ sĩ "${artist}": ${error.code || error.message} — bỏ qua, tiếp tục`);
+      continue;
+    }
     if (result) {
-      await prisma.artistMeta.create({
-        data: {
+      await prisma.artistMeta.upsert({
+        where: { artistMbid: result.mbid },
+        update: {},
+        create: {
           artistMbid: result.mbid,
           name: result.name,
           aliases: result.aliases,
@@ -77,7 +85,13 @@ async function enrichSongs() {
 
     // Lấy artistMbid từ cache ArtistMeta nếu có
     const meta = await prisma.artistMeta.findUnique({ where: { name: song.artist } });
-    const result = await searchRecording(song.artist, song.title);
+    let result = null;
+    try {
+      result = await searchRecording(song.artist, song.title);
+    } catch (error) {
+      console.log(`  LỖI bài "${song.title}" (${song.artist}): ${error.code || error.message} — bỏ qua, tiếp tục`);
+      continue;
+    }
 
     if (result) {
       await prisma.song.update({

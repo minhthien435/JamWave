@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from "react";
-import { CheckCircle2, AlertCircle, X } from "lucide-react";
+import { CheckCircle, WarningCircle, X } from "@phosphor-icons/react";
 import { ToastContext } from "./ToastContext";
 
 let toastId = 0;
@@ -41,16 +41,16 @@ export default function ToastProvider({ children }) {
         {toasts.map((t) => (
           <div
             key={t.id}
-            className={`flex items-start gap-2.5 px-4 py-3 rounded-2xl shadow-2xl border backdrop-blur-md animate-float-slow text-sm font-medium ${
+            className={`flex items-start gap-2.5 px-4 py-3 rounded-2xl shadow-2xl border backdrop-blur-xl text-xs font-semibold select-none ${
               t.type === "error"
-                ? "bg-red-950/90 border-red-500/40 text-red-100"
-                : "bg-emerald-950/90 border-emerald-500/40 text-emerald-100"
+                ? "bg-[#1f1115]/95 border-rose-500/30 text-rose-200"
+                : "bg-[#111c16]/95 border-emerald-500/30 text-emerald-200"
             }`}
           >
             {t.type === "error" ? (
-              <AlertCircle size={18} className="text-red-400 flex-shrink-0 mt-0.5" />
+              <WarningCircle size={17} weight="fill" className="text-rose-400 flex-shrink-0 mt-0.5" />
             ) : (
-              <CheckCircle2 size={18} className="text-emerald-400 flex-shrink-0 mt-0.5" />
+              <CheckCircle size={17} weight="fill" className="text-emerald-400 flex-shrink-0 mt-0.5" />
             )}
             <span className="flex-1 break-words">{t.message}</span>
             <button
@@ -58,7 +58,7 @@ export default function ToastProvider({ children }) {
               className="text-white/50 hover:text-white p-0.5 rounded-full hover:bg-white/10 transition-colors flex-shrink-0"
               title="Đóng"
             >
-              <X size={14} />
+              <X size={14} weight="bold" />
             </button>
           </div>
         ))}

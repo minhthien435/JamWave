@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronLeft, ChevronRight, LogOut, User, Shield } from "lucide-react";
+import { CaretLeft, CaretRight, SignOut, User, ShieldCheck } from "@phosphor-icons/react";
 import { useAuthStore } from "../useAuthStore";
 
 export default function TopBar() {
@@ -36,39 +36,40 @@ export default function TopBar() {
       <div className="flex items-center gap-2">
         <button
           onClick={() => navigate(-1)}
-          className="w-9 h-9 rounded-full bg-white/5 border border-white/10 text-zinc-300 flex items-center justify-center hover:text-white hover:bg-white/15 transition-all duration-200 active:scale-95 shadow-md"
+          className="w-8 h-8 rounded-full bg-white/5 border border-white/10 text-zinc-300 flex items-center justify-center hover:text-white hover:bg-white/15 transition-all duration-150 active:scale-95 shadow-sm"
           title="Quay lại"
         >
-          <ChevronLeft size={20} />
+          <CaretLeft size={18} weight="bold" />
         </button>
         <button
           onClick={() => navigate(1)}
-          className="w-9 h-9 rounded-full bg-white/5 border border-white/10 text-zinc-300 flex items-center justify-center hover:text-white hover:bg-white/15 transition-all duration-200 active:scale-95 shadow-md"
+          className="w-8 h-8 rounded-full bg-white/5 border border-white/10 text-zinc-300 flex items-center justify-center hover:text-white hover:bg-white/15 transition-all duration-150 active:scale-95 shadow-sm"
           title="Tiến tới"
         >
-          <ChevronRight size={20} />
+          <CaretRight size={18} weight="bold" />
         </button>
       </div>
 
-      {/* Hành động tài khoản / Khám phá */}
+      {/* Hành động tài khoản */}
       <div className="flex items-center gap-3 relative">
-        <button className="hidden sm:block text-xs font-bold px-4 py-2 rounded-full border border-white/15 bg-white/5 text-zinc-200 hover:text-white hover:bg-white/10 transition-all duration-200 backdrop-blur-md active:scale-95 shadow-sm">
-          Khám phá Premium
-        </button>
-
         {user ? (
           <div ref={menuRef} className="relative">
             <button
               onClick={() => setMenuOpen((open) => !open)}
-              className={`w-9 h-9 rounded-full bg-gradient-to-tr from-violet-600 via-purple-500 to-cyan-400 text-white font-extrabold text-sm flex items-center justify-center hover:scale-105 transition-all duration-200 border-2 shadow-lg shadow-violet-500/30 ${menuOpen ? "border-white ring-4 ring-violet-500/40" : "border-violet-300/40"
-                }`}
+              className={`w-9 h-9 rounded-full bg-violet-600 text-white font-black text-sm flex items-center justify-center hover:scale-105 transition-all duration-200 border border-white/20 shadow-md shadow-violet-950/60 ${
+                menuOpen ? "ring-2 ring-violet-400" : ""
+              }`}
               title={user.name}
             >
-              {avatarText}
+              {user.avatarUrl ? (
+                <img src={user.avatarUrl} alt={user.name} className="w-full h-full rounded-full object-cover" />
+              ) : (
+                avatarText
+              )}
             </button>
 
             {menuOpen && (
-              <div className="absolute right-0 top-12 glass-panel rounded-2xl shadow-2xl w-52 py-2 border border-white/15 animate-float-slow z-50">
+              <div className="absolute right-0 top-11 glass-panel rounded-2xl shadow-2xl w-52 py-2 border border-white/15 z-50">
                 <div className="px-4 py-2.5 border-b border-white/10 mb-1">
                   <p className="text-sm font-bold truncate text-white">{user.name}</p>
                   <p className="text-xs text-zinc-400 truncate">{user.email}</p>
@@ -79,10 +80,10 @@ export default function TopBar() {
                       setMenuOpen(false);
                       navigate("/admin");
                     }}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-amber-300 hover:text-amber-200 hover:bg-white/5 transition-all duration-200 font-medium"
+                    className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-amber-300 hover:text-amber-200 hover:bg-white/5 transition-all duration-150 font-medium"
                   >
-                    <Shield size={16} />
-                    Trung tâm quản trị
+                    <ShieldCheck size={18} weight="duotone" />
+                    Quản trị hệ thống
                   </button>
                 )}
                 <button
@@ -90,16 +91,16 @@ export default function TopBar() {
                     setMenuOpen(false);
                     navigate("/profile");
                   }}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-zinc-300 hover:text-white hover:bg-white/5 transition-all duration-200 font-medium"
+                  className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-zinc-300 hover:text-white hover:bg-white/5 transition-all duration-150 font-medium"
                 >
-                  <User size={16} />
+                  <User size={18} weight="duotone" />
                   Hồ sơ cá nhân
                 </button>
                 <button
                   onClick={handleLogout}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-zinc-300 hover:text-red-400 hover:bg-white/5 transition-all duration-200 font-medium"
+                  className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-zinc-300 hover:text-rose-400 hover:bg-white/5 transition-all duration-150 font-medium"
                 >
-                  <LogOut size={16} />
+                  <SignOut size={18} weight="duotone" />
                   Đăng xuất
                 </button>
               </div>
@@ -108,7 +109,7 @@ export default function TopBar() {
         ) : (
           <button
             onClick={() => navigate("/login")}
-            className="text-xs font-bold px-5 py-2.5 rounded-full bg-gradient-to-r from-violet-600 to-cyan-500 hover:from-violet-500 hover:to-cyan-400 text-white hover:scale-105 transition-all duration-200 shadow-lg shadow-violet-500/25"
+            className="text-xs font-bold px-5 py-2.5 rounded-full bg-violet-600 hover:bg-violet-500 text-white transition-all shadow-md shadow-violet-950/50 active:scale-95"
           >
             Đăng nhập
           </button>

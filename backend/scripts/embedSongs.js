@@ -1,5 +1,6 @@
 // Tạo embedding (vector 3072) cho các bài hát chưa có, dùng Gemini embedding.
 // Chạy thủ công: npm run embed   (resumable — bỏ qua bài đã có embedding)
+// Re-embed toàn bộ (khi thay đổi songEmbeddingText): npm run embed -- --force
 // Dùng BATCH embed: nhiều bài / 1 HTTP request để nhanh + ít bị rate limit.
 const { PrismaClient } = require("@prisma/client");
 const path = require("path");
@@ -15,8 +16,12 @@ async function main() {
     process.exit(1);
   }
 
-  const songs = await prisma.$queryRaw`SELECT id, title, artist, genre FROM "Song" WHERE "embedding" IS NULL ORDER BY id ASC`;
-  console.log(`📊 Có ${songs.length} bài chưa có embedding.`);
+  const FORCE = process.argv.includes("--force");
+  const where = FORCE ? "" : 'WHERE "embedding" IS NULL';
+  const songs = await prisma.$queryRawUnsafe(
+    `SELECT id, title, artist, genre FROM "Song" ${where} ORDER BY id ASC`
+  );
+  console.log(`📊 Có ${songs.length} bài ${FORCE ? "(re-embed toàn bộ)" : "chưa có embedding"}.`);
 
   let ok = 0;
   let failed = 0;

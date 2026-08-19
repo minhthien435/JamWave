@@ -146,7 +146,15 @@ const VI_WORDS = new Set([
   "quá", "giờ", "chút", "thử", "xem", "thấy", "biết", "làm", "hỏi", "trả", "lời", "tạm", "dừng",
   "tiếp", "theo", "trước", "sau", "âm", "lượng", "tăng", "giảm", "bật", "tắt", "ngẫu", "nhiên", "thể",
   "loại", "nghệ", "sĩ", "ca", "sĩ", "album", "lời", "nói", "về", "tóm", "tắt", "ý", "nghĩa",
+  // Dạng không dấu (tiếng Việt gõ không dấu)
+  "minh", "ban", "nhe", "nha", "duoc", "gi", "khong", "nay", "tim", "nhac", "phat", "mo", "bat",
+  "bai", "hat", "muon", "xin", "giup", "roi", "dang", "theo", "nhu", "thi", "ma", "cung", "nghe",
+  "hay", "rat", "dep", "nhieu", "loi", "yeu", "thich", "lam", "goi", "y", "vui", "buon", "ngay",
+  "viet", "vietnam", "em", "anh", "hom", "mai", "se", "da", "dung", "tiep", "sau", "truoc", "top",
 ]);
+
+// Bỏ dấu tiếng Việt (NFD) để so khớp câu gõ không dấu
+const STRIP_DIACRITICS = (s) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
 function detectLanguage(text) {
   const t = (text || "").trim();
@@ -156,11 +164,15 @@ function detectLanguage(text) {
 
   const hasDiacritic = /[àáảãạăắằẳẵặâấầẩẫậđèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵ]/i.test(t);
 
-  const tokens = t.toLowerCase().split(/\s+/).filter(Boolean);
+  const norm = STRIP_DIACRITICS(t.toLowerCase());
+  const tokens = norm.split(/\s+/).filter(Boolean);
   const viHits = tokens.filter((w) => VI_WORDS.has(w.replace(/[.,!?"'“”]/g, ""))).length;
   const ratio = tokens.length ? viHits / tokens.length : 0;
 
   if (hasDiacritic || ratio > 0.15) return "vi";
+
+  // Từ khóa mở đầu đặc trưng tiếng Việt (kể cả gõ không dấu)
+  if (/^(xin chao|chao|phat|mo|bat|nghe|cho|tim|gui|minh|toi|em|anh|lam on|vui long|giup|hoc|ngu|ngay)/i.test(norm)) return "vi";
   return "en";
 }
 
@@ -263,7 +275,7 @@ Analyze the user's latest message (use the short history if the user refers to p
 Output ONLY a valid JSON object, no markdown fences, no commentary:
 {
   "lang": "vi" or "en",
-  "intent": "search_music" | "artist_info" | "album_info" | "play_music" | "lyrics" | "recommend" | "chat",
+  "intent": "search_music" | "artist_info" | "album_info" | "play_music" | "recommend" | "chat",
   "attributes": {
     "genre": string or null,
     "mood": one of ["happy","sad","chill","energetic","romantic","dark","dreamy","focus","sleep","workout","rainy","night","calm","melancholic"] or null,
@@ -282,7 +294,6 @@ Rules:
 - "play_music": user asks to PLAY/listen/open a specific song, artist, album or random music.
 - "artist_info": asks about an artist (who they are, their genre, songs/albums by them).
 - "album_info": asks about an album (release info, track list, play the album).
-- "lyrics": asks for lyrics, or the meaning/summary/explanation of a song's lyrics.
 - "recommend": asks for suggestions/recommendations/playlists of music.
 - "chat": anything else (small talk, app questions).
 - Infer attributes from feelings ("stressed", "sad", "rainy night", "studying") -> mood/purpose.

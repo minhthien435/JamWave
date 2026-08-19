@@ -1,6 +1,5 @@
 const prisma = require("../lib/prisma");
 const { GENRE_KEYWORDS, MOOD_MAP, ENERGY_GENRES, PURPOSE_MAP } = require("./aiService");
-const { getLyricsForSong } = require("./lyricService");
 const { getArtistImage } = require("./artistImageService");
 const { searchArtist } = require("./musicBrainz");
 const { embedText } = require("./embeddingService");
@@ -54,6 +53,16 @@ function normalizeKeepWords(name) {
     .replace(/[^a-z0-9\s]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+// Tên hiển thị sạch: bỏ emoji / ký hiệu trang trí ở 2 đầu (chỉ sửa hiển thị, không đụng dữ liệu)
+function cleanDisplayName(name) {
+  const stripped = (name || "")
+    // eslint-disable-next-line no-control-regex
+    .replace(/[\u0000-\u001f\u007f-\u009f\u{1F000}-\u{1FAFF}\u{1F1E6}-\u{1F1FF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}\u{200D}\u{2190}-\u{21FF}\u{2300}-\u{23FF}\u{2B50}\u{26CE}\u{2705}\u{FE0E}\u{FE0F}\u{1F900}-\u{1F9FF}]/gu, "")
+    .replace(/^\s*[^\p{L}\p{N}]+|[^\p{L}\p{N}]+\s*$/gu, "")
+    .trim();
+  return stripped || (name || "").trim();
 }
 
 // ---- Khoảng cách Levenshtein (cho fuzzy match) ----
@@ -138,6 +147,22 @@ async function findArtist(message) {
     }
   }
 
+  // 3b) Khớp thô theo chuỗi (giữ nguyên ký tự đặc biệt: "Møme", "Björk", "Vũ." ...) —
+  //      fallback khi normalizeName bỏ mất ký tự không phải a-z. Ưu tiên tên dài nhất.
+  const rawMsg = message.toLowerCase();
+  let bestRaw = null;
+  for (const artist of artists) {
+    const rawName = artist.name.toLowerCase();
+    if (!rawName || rawName.length < 2) continue;
+    if (rawMsg.includes(rawName)) {
+      if (!bestRaw || rawName.length > bestRaw.name.length) bestRaw = artist;
+    }
+  }
+  if (bestRaw && (!best || bestScore < 0.9)) {
+    best = bestRaw;
+    bestScore = 1;
+  }
+
   // 4) Khớp qua alias từ MusicBrainz (ArtistMeta) — tên gọi khác / tên thật của nghệ sĩ
   const metas = await prisma.artistMeta.findMany({ select: { name: true, aliases: true } });
   const aliasToDb = new Map(); // normalizeName -> db artists
@@ -191,12 +216,34 @@ async function suggestArtists(message, limit = 3) {
         score = Math.max(score, (hit / artistWords.length) * 0.8);
       }
       score = Math.max(score, bestSimilarity(anNorm, msgNorm) * 0.9);
-      return { name: g.artist, songCount: g._count._all, score };
+      return { name: cleanDisplayName(g.artist), songCount: g._count._all, score };
     })
     .filter(Boolean)
     .sort((a, b) => b.score - a.score);
 
   return scored.slice(0, limit).filter((s) => s.score >= 0.4);
+}
+
+// ---- Gợi ý nghệ sĩ nổi bật theo thể loại (vd "Gợi ý các nghệ sĩ acoustic") ----
+async function suggestArtistsByGenre(message, limit = 4) {
+  const lower = (message || "").toLowerCase();
+  const entry = GENRE_KEYWORDS.find(
+    (g) => lower.includes(g.keyword) || (g.fallbackTerms || []).some((t) => lower.includes(t))
+  );
+  if (!entry) return [];
+  const terms = [entry.keyword, ...(entry.genres || []), ...(entry.fallbackTerms || [])];
+  const groups = await prisma.song.groupBy({
+    by: ["artist"],
+    where: {
+      duplicateOf: null,
+      OR: terms.map((t) => ({ genre: { contains: t, mode: "insensitive" } })),
+    },
+    _count: { _all: true },
+  });
+  return groups
+    .sort((a, b) => b._count._all - a._count._all)
+    .slice(0, limit)
+    .map((g) => ({ name: cleanDisplayName(g.artist), songCount: g._count._all }));
 }
 
 // ---- Tìm bài hát trong DB theo tên ----
@@ -333,6 +380,10 @@ async function getArtistInfo(name) {
     genres,
     sources,
     yearRange: years.length >= 2 ? [years[0], years[years.length - 1]] : years.length === 1 ? [years[0]] : [],
+    // Metadata chuẩn hóa từ MusicBrainz (ArtistMeta) nếu đã enrich
+    country: meta?.country || null,
+    metaYearRange: meta?.yearRange || null,
+    aliases: meta?.aliases || [],
     albums: albums.slice(0, 5).map((a) => ({
       id: a.id,
       title: a.title,
@@ -422,7 +473,6 @@ async function searchMusic(attrs = {}, limit = 10) {
   if (wantInstrumental) {
     genreSet.add("instrumental");
     where.OR.push({ genre: { contains: "instrumental", mode: "insensitive" } });
-    where.OR.push({ lyric: { instrumental: true } });
   }
 
   if (where.OR.length === 0) {
@@ -432,7 +482,6 @@ async function searchMusic(attrs = {}, limit = 10) {
 
   const candidates = await prisma.song.findMany({
     where,
-    include: { lyric: { select: { instrumental: true } } },
     take: 300,
     orderBy: { id: "asc" },
   });
@@ -450,7 +499,7 @@ async function searchMusic(attrs = {}, limit = 10) {
     const genre = (s.genre || "").toLowerCase();
     const title = (s.title || "").toLowerCase();
     const artist = (s.artist || "").toLowerCase();
-    const isInstrumental = s.lyric?.instrumental === true || genre.includes("instrumental");
+    const isInstrumental = genre.includes("instrumental");
 
     for (const g of genreSet) if (genre.includes(g)) score += 3;
     for (const t of termSet) {
@@ -574,9 +623,37 @@ const toNormalized = (rows) => {
   return normalizeSongs(rows.map(mapDb));
 };
 
+// Enrich query: query kiểu "mưa đêm buồn thư giãn" không có từ genre nào -> embed
+// chẳng khớp gì (song chỉ được embed title+artist+genre). Bổ sung genre keywords
+// từ mood/purpose (VI + EN) để query tự "dịch" sang không gian thể loại.
+const SEMANTIC_QUERY_ENRICH = [
+  { re: /mưa|rain|rainy|storm/i, genres: ["chillout", "lounge", "piano", "ambient", "blues"] },
+  { re: /buồn|sad|melancholic|cô đơn|u sầu|heartbreak|hoài niệm|nostalgic/i, genres: ["blues", "singer-songwriter", "lounge", "relaxation", "ambient", "piano"] },
+  { re: /thư giãn|chill|calm|relax|nhẹ nhàng|yên tĩnh|bình yên|peaceful|gentle/i, genres: ["lounge", "chillout", "downtempo", "relaxation", "ambient"] },
+  { re: /mạnh mẽ|energetic|năng lượng|gym|tập|luyện|workout|running|cardio|pump/i, genres: ["dance", "electronic", "rock", "phonk", "hip-hop", "house", "funk"] },
+  { re: /học|study|tập trung|focus|coding|code|concentration|deep/i, genres: ["lounge", "chillout", "downtempo", "relaxation", "ambient", "piano", "lofi"] },
+  { re: /ngủ|sleep|ngủ ngon|dễ ngủ/i, genres: ["relaxation", "ambient", "piano", "chillout", "sleep"] },
+  { re: /vui|happy|phấn khích|joy|upbeat|fun|sảng khoái/i, genres: ["pop", "dance", "funk", "reggae", "world", "rock"] },
+  { re: /yêu|love|romantic|lãng mạn|romance|kiss|heart/i, genres: ["singer-songwriter", "jazz", "lounge", "pop"] },
+  { re: /đêm|night|midnight|late|khuya/i, genres: ["synthwave", "jazz", "lounge", "phonk", "downtempo"] },
+  { re: /tiệc|party|club|quẩy|quậy/i, genres: ["dance", "electronic", "house", "pop", "funk"] },
+  { re: /mộng|dream|dreamy|ethereal|bay bổng/i, genres: ["ambient", "chillout", "downtempo"] },
+  { re: /tối|dark|gothic|shadow|huyền bí/i, genres: ["phonk", "metal", "dark", "trap"] },
+];
+
+function enrichQueryForSemantic(query) {
+  const q = (query || "").toLowerCase();
+  const matched = new Set();
+  for (const { re, genres } of SEMANTIC_QUERY_ENRICH) {
+    if (re.test(q)) genres.forEach((g) => matched.add(g));
+  }
+  if (matched.size === 0) return query;
+  return `${query} ${[...matched].join(" ")}`;
+}
+
 async function semanticSearch(query, count = 10) {
   if (!query || !query.trim()) return [];
-  const vec = await embedText(query);
+  const vec = await embedText(enrichQueryForSemantic(query));
   if (!vec) return [];
   const list = `[${vec.join(",")}]`;
   const q = `'${list}'::vector`;
@@ -689,11 +766,75 @@ async function getRadioSongs(seed, count = 15) {
   return normalizeSongs(result.slice(0, count));
 }
 
+// ---- Daily Mix: playlist thông minh từ thói quen nghe của user (embedding + semantic) ----
+async function buildDailyMix(userId, count = 15) {
+  const topByUser = async () =>
+    prisma.songListen.groupBy({
+      by: ["songId"],
+      where: { userId },
+      _count: { _all: true },
+      orderBy: { _count: { songId: "desc" } },
+      take: 8,
+    });
+  const topByAll = async () =>
+    prisma.songListen.groupBy({
+      by: ["songId"],
+      _count: { _all: true },
+      orderBy: { _count: { songId: "desc" } },
+      take: 8,
+    });
+
+  let listens = userId ? await topByUser().catch(() => []) : [];
+  if (!listens.length) listens = await topByAll().catch(() => []);
+  if (!listens.length) return getRandomSongs(count);
+
+  const topSongs = await prisma.song.findMany({
+    where: { id: { in: listens.map((l) => l.songId) }, duplicateOf: null },
+  });
+  if (!topSongs.length) return getRandomSongs(count);
+
+  // Seed: vài bài nghe nhiều nhất (findSimilarSongs tự bỏ qua bài không có embedding)
+  const seeds = topSongs.slice(0, 3);
+  const pool = [];
+  const seen = new Set();
+  const push = (song) => {
+    if (!song || seen.has(song.id)) return;
+    seen.add(song.id);
+    pool.push(song);
+  };
+
+  for (const seed of seeds) {
+    const similar = await findSimilarSongs(seed.id, 10).catch(() => []);
+    similar.forEach(push);
+  }
+
+  // Bổ sung theo mô tả thể loại của các bài đã nghe (semantic free-text)
+  if (pool.length < count) {
+    const genreDesc = topSongs
+      .map((s) => (s.genre || "").split(",").map((g) => g.trim()))
+      .flat()
+      .filter(Boolean)
+      .slice(0, 4)
+      .join(", ");
+    const extra = genreDesc ? await semanticSearch(genreDesc, 10).catch(() => []) : [];
+    extra.forEach(push);
+  }
+
+  // Đệm ngẫu nhiên nếu vẫn thiếu
+  if (pool.length < count) {
+    const random = await getRandomSongs(count);
+    random.forEach(push);
+  }
+
+  return normalizeSongs(pool.slice(0, count));
+}
+
 module.exports = {
   normalizeSong,
   normalizeSongs,
   findArtist,
   suggestArtists,
+  suggestArtistsByGenre,
   ensureArtistMeta,
   findSong,
   findSongInMessage,
@@ -706,7 +847,8 @@ module.exports = {
   getRandomSongs,
   getRelatedSongs,
   getRadioSongs,
+  buildDailyMix,
   semanticSearch,
   findSimilarSongs,
-  getLyricsForSong,
+  enrichQueryForSemantic,
 };

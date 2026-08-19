@@ -3,7 +3,8 @@ const rateLimit = require("express-rate-limit");
 
 const DEFAULT_LIMIT = 100; // request / phút cho toàn API
 const AUTH_LIMIT = 5; // đăng nhập / đăng ký
-const AI_LIMIT = 20; // chat AI
+const AI_LIMIT = 30; // chat AI
+const RESEND_LIMIT = 5; // gửi lại email xác thực / verify
 
 // Giới hạn chung áp cho mọi route
 const generalLimiter = rateLimit({
@@ -32,8 +33,18 @@ const aiLimiter = rateLimit({
   message: { error: "Quá nhiều tin nhắn. Vui lòng thử lại sau 1 phút." },
 });
 
+// Giới hạn riêng cho verify-email / resend-verification (chống spam email)
+const resendLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: RESEND_LIMIT,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Quá nhiều yêu cầu. Vui lòng thử lại sau 15 phút." },
+});
+
 module.exports = {
   generalLimiter,
   authLimiter,
   aiLimiter,
+  resendLimiter,
 };

@@ -12,6 +12,7 @@ const getProfile = async (req, res) => {
         email: true,
         name: true,
         role: true,
+        avatarUrl: true,
         createdAt: true,
         _count: { select: { likedSongs: true, playlists: true } },
       },
@@ -53,6 +54,7 @@ const getProfile = async (req, res) => {
         email: user.email,
         name: user.name,
         role: user.role,
+        avatarUrl: user.avatarUrl,
         createdAt: user.createdAt,
       },
       stats: {

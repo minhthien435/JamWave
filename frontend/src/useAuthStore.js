@@ -44,10 +44,10 @@ export const useAuthStore = create((set) => ({
     set({ user: null, token: null, error: null });
   },
 
-  async login(email, password) {
+  async login(email, password, captchaToken) {
     set({ loading: true, error: null });
     try {
-      const data = await authApi.login(email, password);
+      const data = await authApi.login(email, password, captchaToken);
       localStorage.setItem(TOKEN_KEY, data.token);
       localStorage.setItem(USER_KEY, JSON.stringify(data.user));
       set({ token: data.token, user: data.user, loading: false });
@@ -58,10 +58,37 @@ export const useAuthStore = create((set) => ({
     }
   },
 
-  async register(name, email, password) {
+  async register(name, email, password, confirmPassword, captchaToken) {
     set({ loading: true, error: null });
     try {
-      const data = await authApi.register(name, email, password);
+      const data = await authApi.register(name, email, password, confirmPassword, captchaToken);
+      set({ loading: false });
+      return data;
+    } catch (err) {
+      set({ loading: false, error: err.message });
+      throw err;
+    }
+  },
+
+  // Xác thực email xong -> tự đăng nhập vào app
+  async verifyEmail(token) {
+    set({ loading: true, error: null });
+    try {
+      const data = await authApi.verifyEmail(token);
+      localStorage.setItem(TOKEN_KEY, data.token);
+      localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+      set({ token: data.token, user: data.user, loading: false });
+      return data;
+    } catch (err) {
+      set({ loading: false, error: err.message });
+      throw err;
+    }
+  },
+
+  async googleLogin(idToken) {
+    set({ loading: true, error: null });
+    try {
+      const data = await authApi.googleLogin(idToken);
       localStorage.setItem(TOKEN_KEY, data.token);
       localStorage.setItem(USER_KEY, JSON.stringify(data.user));
       set({ token: data.token, user: data.user, loading: false });

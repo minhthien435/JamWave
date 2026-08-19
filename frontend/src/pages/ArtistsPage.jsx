@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Loader2 } from "lucide-react";
+import { SpinnerGap } from "@phosphor-icons/react";
 import { fetchArtists } from "../api/artists";
 import ArtistAvatar from "../components/ArtistAvatar";
 
@@ -24,27 +24,30 @@ export default function ArtistsPage() {
 
   if (!artists && !error) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 text-zinc-500">
-        <Loader2 size={32} className="animate-spin mb-3" />
-        <p className="text-sm">Đang tải nghệ sĩ...</p>
+      <div className="flex flex-col items-center justify-center py-20 text-violet-400">
+        <SpinnerGap size={32} className="animate-spin mb-3" />
+        <p className="text-sm text-zinc-400 font-medium">Đang tải danh sách nghệ sĩ...</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 text-center">
-        <p className="text-red-400 font-semibold text-lg mb-2">Không thể tải danh sách nghệ sĩ</p>
+      <div className="flex flex-col items-center justify-center py-20 text-center">
+        <p className="text-rose-400 font-semibold mb-2">Không thể tải danh sách nghệ sĩ</p>
         <p className="text-zinc-500 text-sm">{error}</p>
       </div>
     );
   }
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-2xl font-bold tracking-tight">Nghệ sĩ</h2>
-        <span className="text-xs text-zinc-500">{artists.length} nghệ sĩ trong thư viện</span>
+    <div className="space-y-6 pb-6 select-none">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white">Nghệ sĩ</h2>
+          <p className="text-xs text-zinc-400 font-medium mt-1">Các giọng ca và nhà sản xuất âm nhạc độc lập</p>
+        </div>
+        <span className="text-xs font-medium tabular-nums text-zinc-400">{artists.length} nghệ sĩ</span>
       </div>
 
       {artists.length === 0 ? (
@@ -55,17 +58,21 @@ export default function ArtistsPage() {
             <Link
               key={artist.name}
               to={`/artist/${encodeURIComponent(artist.name)}`}
-              className="group bg-zinc-800/40 hover:bg-zinc-800/90 p-4 rounded-lg transition-all duration-300"
+              className="group glass-card p-4 rounded-2xl transition-all duration-200 flex flex-col items-center"
             >
-              <div className="aspect-square rounded-full overflow-hidden shadow-lg mb-3 bg-gradient-to-br from-zinc-700 to-zinc-800 flex items-center justify-center">
+              <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden shadow-md mb-3 border-2 border-transparent group-hover:border-violet-500 transition-all duration-200 p-0.5">
                 <ArtistAvatar
                   name={artist.name}
                   image={artist.image}
-                  className="w-full h-full rounded-none border-0 group-hover:scale-105 transition-transform duration-300"
+                  className="w-full h-full rounded-full border-0 group-hover:scale-105 transition-transform duration-300"
                 />
               </div>
-              <p className="font-bold text-sm truncate text-center">{artist.name}</p>
-              <p className="text-xs text-zinc-500 text-center mt-1">{artist.songCount} bài hát</p>
+              <p className="font-bold text-sm truncate text-center text-white group-hover:text-violet-300 transition-colors w-full">
+                {artist.name}
+              </p>
+              <p className="text-[11px] text-zinc-400 text-center mt-1 font-medium tabular-nums">
+                {artist.songCount} bài hát
+              </p>
             </Link>
           ))}
         </div>

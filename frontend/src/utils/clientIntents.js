@@ -48,7 +48,7 @@ export function detectPlayerIntent(text) {
     return { type: "resume" };
   }
 
-  if (/(bài tiếp theo|bài kế tiếp|bài tiếp|bài kế|chuyển bài|next song|next track|skip\b|chơi tiếp)/i.test(t)) {
+  if (/(bài tiếp theo|bài kế tiếp|bài tiếp|bài kế|chuyển bài|phát bài tiếp theo|next song|next track|next\b|skip\b|chơi tiếp)/i.test(t)) {
     return { type: "next" };
   }
 
@@ -78,7 +78,7 @@ export function detectPlayerIntent(text) {
     return { type: "unmute" };
   }
 
-  if (/(trộn bài|shuffle|tráo bài|phát ngẫu nhiên chế độ)/i.test(t)) {
+  if (/(trộn bài|shuffle|tráo bài|phát ngẫu nhiên chế độ|bật phát ngẫu nhiên|bật ngẫu nhiên|shuffle on)/i.test(t)) {
     return { type: "shuffle" };
   }
 

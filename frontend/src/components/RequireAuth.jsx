@@ -1,6 +1,6 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuthStore } from "../useAuthStore";
-import { Loader2 } from "lucide-react";
+import { SpinnerGap } from "@phosphor-icons/react";
 
 // Bảo vệ route: chưa đăng nhập -> chuyển về trang login (kèm đường quay lại)
 export default function RequireAuth({ children }) {
@@ -10,8 +10,8 @@ export default function RequireAuth({ children }) {
 
   if (!ready) {
     return (
-      <div className="flex items-center justify-center h-64 text-zinc-500">
-        <Loader2 size={28} className="animate-spin" />
+      <div className="flex items-center justify-center py-20 text-violet-400">
+        <SpinnerGap size={28} className="animate-spin" />
       </div>
     );
   }

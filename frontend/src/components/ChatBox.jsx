@@ -1,17 +1,26 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bot, Send, X, Play, Copy, Check, Music2, Mic2, ExternalLink } from "lucide-react";
-import { sendChatMessage } from "../api/ai";
+import {
+  Sparkle,
+  MusicNotes,
+  PaperPlaneTilt,
+  X,
+  Play,
+  Copy,
+  Check,
+  ArrowSquareOut,
+  MicrophoneStage,
+  Disc,
+  Lightbulb,
+  BookOpenText,
+} from "@phosphor-icons/react";
+import { sendChatMessageStream } from "../api/ai";
 import { usePlayerStore } from "../usePlayerStore";
+import { useLibraryStore } from "../useLibraryStore";
 import { detectPlayerIntent, executePlayerIntent, detectLanguage } from "../utils/clientIntents";
+import { useSpeechRecognition } from "../hooks/useSpeechRecognition";
+import { CATEGORY_TABS } from "../data/chatPrompts";
 import ArtistAvatar from "./ArtistAvatar";
-
-const QUICK_SUGGESTIONS = [
-  "Phát nhạc ngẫu nhiên",
-  "Gợi ý nhạc lofi",
-  "Tìm nhạc indie chill cho việc học",
-  "Alexander Blu có bao nhiêu bài?",
-];
 
 const formatDuration = (seconds) => {
   if (!seconds || isNaN(seconds)) return "0:00";
@@ -46,27 +55,30 @@ function ArtistCard({ artist, songs, onPlayAll }) {
       <div className="flex items-center gap-3">
         <ArtistAvatar name={artist.name} image={artist.image} />
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-bold text-white truncate">🎤 {artist.name}</p>
+          <p className="text-xs font-bold text-white truncate flex items-center gap-1">
+            <MicrophoneStage size={14} className="text-violet-400" />
+            {artist.name}
+          </p>
           {artist.genres?.length > 0 && (
-            <p className="text-[10px] text-cyan-300/90 truncate font-medium">{artist.genres.join(" · ")}</p>
+            <p className="text-[10px] text-zinc-400 truncate font-medium mt-0.5">{artist.genres.join(" · ")}</p>
           )}
-          <p className="text-[10px] text-zinc-400 font-medium">{artist.songCount} bài hát</p>
+          <p className="text-[10px] text-zinc-500 font-medium">{artist.songCount} bài hát</p>
         </div>
       </div>
       <div className="mt-2.5 flex gap-2">
         <button
           onClick={() => navigate(`/artist/${encodeURIComponent(artist.name)}`)}
-          className="flex-1 text-[11px] font-bold bg-white/10 hover:bg-white/20 text-zinc-100 rounded-lg py-1.5 transition-all active:scale-95"
+          className="flex-1 text-[11px] font-semibold bg-white/10 hover:bg-white/15 text-zinc-200 rounded-lg py-1.5 transition-all active:scale-95 flex items-center justify-center gap-1"
         >
-          <ExternalLink size={11} className="inline mr-1 -mt-0.5 text-cyan-400" />
+          <ArrowSquareOut size={13} className="text-violet-400" />
           Xem nghệ sĩ
         </button>
         {hasSongs && (
           <button
             onClick={() => onPlayAll(songs)}
-            className="flex-1 text-[11px] font-bold bg-gradient-to-r from-violet-600 to-cyan-500 hover:from-violet-500 hover:to-cyan-400 text-white rounded-lg py-1.5 transition-all active:scale-95"
+            className="flex-1 text-[11px] font-semibold bg-violet-600 hover:bg-violet-500 text-white rounded-lg py-1.5 transition-all active:scale-95 flex items-center justify-center gap-1 shadow-sm"
           >
-            <Play size={11} className="inline mr-1 -mt-0.5" fill="white" />
+            <Play size={13} weight="fill" />
             Phát tất cả
           </button>
         )}
@@ -90,8 +102,11 @@ function AlbumCard({ album, songs, onPlayAll }) {
           className="w-12 h-12 rounded-xl object-cover flex-shrink-0 shadow border border-white/10"
         />
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-bold text-white truncate">💿 {album.title}</p>
-          <p className="text-[10px] text-zinc-400 truncate font-medium">{album.artist}</p>
+          <p className="text-xs font-bold text-white truncate flex items-center gap-1">
+            <Disc size={14} className="text-violet-400" />
+            {album.title}
+          </p>
+          <p className="text-[10px] text-zinc-400 truncate font-medium mt-0.5">{album.artist}</p>
           <p className="text-[10px] text-zinc-500 font-medium">
             {album.songCount} bài
             {album.releaseYears?.length > 0 ? ` · ${album.releaseYears.join(", ")}` : ""}
@@ -101,17 +116,17 @@ function AlbumCard({ album, songs, onPlayAll }) {
       <div className="mt-2.5 flex gap-2">
         <button
           onClick={() => navigate(`/album/${album.id}`)}
-          className="flex-1 text-[11px] font-bold bg-white/10 hover:bg-white/20 text-zinc-100 rounded-lg py-1.5 transition-all active:scale-95"
+          className="flex-1 text-[11px] font-semibold bg-white/10 hover:bg-white/15 text-zinc-200 rounded-lg py-1.5 transition-all active:scale-95 flex items-center justify-center gap-1"
         >
-          <ExternalLink size={11} className="inline mr-1 -mt-0.5 text-cyan-400" />
+          <ArrowSquareOut size={13} className="text-violet-400" />
           Xem album
         </button>
         {hasSongs && (
           <button
             onClick={() => onPlayAll(songs)}
-            className="flex-1 text-[11px] font-bold bg-gradient-to-r from-violet-600 to-cyan-500 hover:from-violet-500 hover:to-cyan-400 text-white rounded-lg py-1.5 transition-all active:scale-95"
+            className="flex-1 text-[11px] font-semibold bg-violet-600 hover:bg-violet-500 text-white rounded-lg py-1.5 transition-all active:scale-95 flex items-center justify-center gap-1 shadow-sm"
           >
-            <Play size={11} className="inline mr-1 -mt-0.5" fill="white" />
+            <Play size={13} weight="fill" />
             Phát album
           </button>
         )}
@@ -120,68 +135,27 @@ function AlbumCard({ album, songs, onPlayAll }) {
   );
 }
 
-// ---- Lyrics block ----
-function LyricsBlock({ lyrics, currentSong }) {
-  const isCurrent = currentSong && lyrics.songId === currentSong.id;
-
-  const openSyncedLyrics = () => {
-    window.dispatchEvent(new CustomEvent("jamwave:open-lyrics"));
-  };
-
-  return (
-    <div className="mt-2.5 bg-black/40 rounded-xl border border-white/10 overflow-hidden select-none">
-      <div className="flex items-center justify-between px-3 py-2 bg-gradient-to-r from-violet-600/20 to-cyan-500/10 border-b border-white/10">
-        <p className="text-[11px] font-bold text-white truncate flex items-center gap-1.5">
-          <Mic2 size={12} className="text-cyan-400 flex-shrink-0" />
-          {lyrics.title} <span className="text-zinc-400 font-medium">— {lyrics.artist}</span>
-        </p>
-      </div>
-
-      <div className="px-3.5 py-2.5">
-        {lyrics.plainLyrics ? (
-          <p className="text-[11px] text-zinc-300 leading-relaxed whitespace-pre-line max-h-52 overflow-y-auto select-text cursor-text font-medium">
-            {lyrics.plainLyrics}
-          </p>
-        ) : (
-          <p className="text-[11px] text-zinc-500 font-medium">Không có lời hiển thị.</p>
-        )}
-
-        {lyrics.synced && (
-          <button
-            onClick={openSyncedLyrics}
-            disabled={!isCurrent}
-            className={`mt-2 w-full text-[11px] font-bold rounded-lg py-1.5 transition-all active:scale-95 flex items-center justify-center gap-1.5 ${isCurrent
-                ? "bg-white/10 hover:bg-white/20 text-cyan-300"
-                : "bg-white/5 text-zinc-500 cursor-not-allowed"
-              }`}
-            title={isCurrent ? "Mở lyrics đồng bộ theo nhạc" : "Phát bài này để mở lyrics đồng bộ"}
-          >
-            <Music2 size={11} />
-            {isCurrent ? "Mở lyrics đồng bộ 🎤" : "Có lyrics đồng bộ — phát bài này để mở"}
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
-
 export default function ChatBox() {
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("mood");
+  const [showSuggestions, setShowSuggestions] = useState(true);
   const [messages, setMessages] = useState([
     {
       role: "bot",
-      text: "Chào bạn! Mình là trợ lý nhạc JamWave 🎵\nHỏi mình gợi ý bài hát, tìm nhạc theo tâm trạng, tra cứu nghệ sĩ/album, xem lời bài hát hoặc yêu cầu phát nhạc nhé!",
+      text: "Chào bạn! Mình là trợ lý nhạc JamWave 🎵\nHỏi mình gợi ý bài hát, tìm nhạc theo tâm trạng, tra cứu nghệ sĩ/album hoặc yêu cầu phát nhạc nhé!",
       songs: [],
       artists: [],
       albums: [],
-      lyrics: null,
       action: null,
+      suggestions: [],
     },
   ]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState(null);
   const scrollRef = useRef(null);
+  const handleSendRef = useRef(null);
   const playerStore = usePlayerStore();
   const { currentSong, setCurrentSong, setQueue } = playerStore;
 
@@ -189,13 +163,38 @@ export default function ChatBox() {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages, open, sending]);
+  }, [messages, open, sending, activeTab, showSuggestions]);
+
+  useEffect(() => {
+    const handleOpen = (e) => {
+      setOpen(true);
+      if (e?.detail?.prompt) {
+        handleSendRef.current?.(e.detail.prompt);
+      }
+    };
+    window.addEventListener("open-ai-chat", handleOpen);
+    return () => window.removeEventListener("open-ai-chat", handleOpen);
+  }, []);
+
+  const handlePlaySong = (song, songs) => {
+    setQueue(songs);
+    setCurrentSong(song);
+  };
+
+  const currentCategory = CATEGORY_TABS.find((tab) => tab.id === activeTab) || CATEGORY_TABS[0];
 
   const handleSend = async (text) => {
     const message = (text || input).trim();
     if (!message || sending) return;
 
-    setMessages((prev) => [...prev, { role: "user", text: message, songs: [], artists: [], albums: [], lyrics: null, action: null }]);
+    // Tự thu gọn panel gợi ý sau tin đầu tiên để chat rộng ra (bật lại qua nút đèn)
+    if (messages.length <= 1) setShowSuggestions(false);
+
+    setMessages((prev) => {
+      const updated = [...prev, { role: "user", text: message, songs: [], artists: [], albums: [], action: null, suggestions: [] }];
+      // Giới hạn 100 messages để tránh chậm khi chat lâu
+      return updated.length > 100 ? updated.slice(updated.length - 100) : updated;
+    });
     setInput("");
     setSending(true);
 
@@ -207,8 +206,9 @@ export default function ChatBox() {
         const reply = executePlayerIntent(localIntent, lang, playerStore);
         setMessages((prev) => [
           ...prev,
-          { role: "bot", text: reply, songs: [], artists: [], albums: [], lyrics: null, action: null },
+          { role: "bot", text: reply, songs: [], artists: [], albums: [], action: null, suggestions: [] },
         ]);
+        setSending(false);
         return;
       }
 
@@ -217,36 +217,88 @@ export default function ChatBox() {
         .slice(-10)
         .map((m) => ({ role: m.role === "user" ? "user" : "bot", text: m.text }));
 
-      const data = await sendChatMessage(message, { history, currentSong });
-      const displaySongs = data.action === "play" ? [] : (data.songs || []);
+      const applyAiActions = (data) => {
+        if (data.action === "play" && data.songs?.length) {
+          handlePlaySong(data.songs[0], data.songs);
+        }
+        if (data.action === "playlist_created" || data.action === "playlist_updated" || data.action === "playlist_deleted") {
+          useLibraryStore.getState().loadPlaylists();
+        }
+        if (data.action === "append" && data.songs?.length) {
+          data.songs.forEach((song) => playerStore.addToQueue(song));
+        }
+      };
 
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "bot",
-          text: data.reply,
-          songs: displaySongs,
-          artists: data.artists || [],
-          albums: data.albums || [],
-          lyrics: data.lyrics || null,
-          action: data.action || null,
-        },
-      ]);
-
-      if (data.action === "play" && data.songs?.length) {
-        handlePlaySong(data.songs[0], data.songs);
+      let streamed = false;
+      let fullReply = "";
+      try {
+        await sendChatMessageStream(
+          message,
+          { history, currentSong },
+          {
+            onResult: (data) => {
+              streamed = true;
+              fullReply = data.reply || "";
+              const displaySongs = data.action === "play" ? [] : (data.songs || []);
+              setMessages((prev) => [
+                ...prev,
+                {
+                  role: "bot",
+                  text: "",
+                  songs: displaySongs,
+                  artists: data.artists || [],
+                  albums: data.albums || [],
+                  action: data.action || null,
+                  suggestions: data.suggestions || [],
+                },
+              ]);
+              applyAiActions(data);
+            },
+            onText: (chunk) => {
+              setMessages((prev) => {
+                const last = prev[prev.length - 1];
+                if (last?.role === "bot") {
+                  return [...prev.slice(0, -1), { ...last, text: last.text + chunk }];
+                }
+                return prev;
+              });
+            },
+          }
+        );
+      } catch (err) {
+        if (streamed) {
+          // Stream lỗi giữa chừng sau khi đã render → backfill text đầy đủ
+          setMessages((prev) => {
+            const last = prev[prev.length - 1];
+            if (last?.role === "bot") {
+              return [...prev.slice(0, -1), { ...last, text: fullReply || last.text }];
+            }
+            return prev;
+          });
+          throw null;
+        }
+        throw err;
       }
     } catch (err) {
+      if (!err) return;
+      const status = err?.response?.status;
+      const serverMsg = err?.response?.data?.error;
+      const text =
+        status === 429
+          ? `Bạn đang gửi tin hơi nhanh, JamWave AI nghỉ 1 phút nhé ⏳ (${serverMsg || "giới hạn 30 tin/phút"}). Hãy thử lại sau!`
+          : serverMsg
+            ? serverMsg
+            : `Có lỗi xảy ra: ${err.message}. Thử lại nhé!`;
       setMessages((prev) => [
         ...prev,
         {
           role: "bot",
-          text: `Có lỗi xảy ra: ${err.message}. Thử lại nhé!`,
+          text,
           songs: [],
           artists: [],
           albums: [],
-          lyrics: null,
           action: null,
+          suggestions: [],
         },
       ]);
     } finally {
@@ -254,10 +306,17 @@ export default function ChatBox() {
     }
   };
 
-  const handlePlaySong = (song, songs) => {
-    setQueue(songs);
-    setCurrentSong(song);
-  };
+  useEffect(() => {
+    handleSendRef.current = handleSend;
+  });
+
+  const { listening: voiceListening, start: startVoice, stop: stopVoice, supported: voiceSupported } = useSpeechRecognition({
+    lang: "vi-VN",
+    onResult: (transcript) => {
+      setInput(transcript);
+      handleSend(transcript);
+    },
+  });
 
   const handleCopyText = (text, index) => {
     if (!text) return;
@@ -268,49 +327,84 @@ export default function ChatBox() {
 
   return (
     <>
-      {/* Nút mở chat dạng Quả cầu Neon phát sáng (Floating Neon Orb) */}
+      {/* Nút mở chat */}
       <button
         onClick={() => setOpen((o) => !o)}
-        className={`fixed bottom-28 right-6 z-50 w-14 h-14 rounded-2xl shadow-2xl flex items-center justify-center transition-all duration-300 active:scale-95 border border-white/20 ${open
-            ? "bg-zinc-800 text-white shadow-black/80 rotate-90"
-            : "bg-gradient-to-tr from-violet-600 via-purple-500 to-cyan-400 text-white neon-glow-violet hover:scale-110 animate-float-slow"
+        className={`group fixed bottom-28 right-6 z-50 w-[54px] h-[54px] rounded-2xl shadow-xl flex items-center justify-center transition-all duration-200 active:scale-95 border border-white/15 ${open
+            ? "bg-zinc-800 text-white shadow-black/80"
+            : "bg-violet-600 hover:bg-violet-500 text-white shadow-violet-950/70 hover:scale-105"
           }`}
-        title="Trợ lý nhạc JamWave AI"
+        title="Trợ lý âm nhạc JamWave AI"
       >
-        {open ? <X size={24} /> : <Bot size={26} className="stroke-[2.5]" />}
+        {open ? (
+          <X size={22} weight="bold" />
+        ) : (
+          <div className="relative flex items-center justify-center">
+            <MusicNotes size={25} weight="duotone" className="text-white" />
+            <span className="absolute -top-1 -right-1.5 flex items-center justify-center w-4 h-4 rounded-full bg-amber-400 text-black shadow-sm">
+              <Sparkle size={10} weight="fill" />
+            </span>
+          </div>
+        )}
       </button>
 
-      {/* Panel chat Glassmorphism Chuẩn */}
+      {/* Panel chat Glassmorphism */}
       {open && (
-        <div className="fixed bottom-44 right-5 z-50 w-[390px] max-w-[calc(100vw-2rem)] h-[490px] max-h-[calc(100vh-220px)] glass-panel rounded-3xl shadow-2xl border border-white/15 flex flex-col overflow-hidden animate-float-slow">
+        <div className="fixed bottom-44 right-5 z-50 w-[470px] max-w-[calc(100vw-2rem)] h-[560px] max-h-[calc(100vh-200px)] glass-chat rounded-3xl shadow-2xl border border-white/10 flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
           {/* Header */}
-          <div className="flex items-center justify-between px-5 py-3.5 bg-gradient-to-r from-violet-600/20 via-cyan-500/10 to-transparent border-b border-white/10">
+          <div className="flex items-center justify-between px-5 py-3.5 bg-white/5 border-b border-white/10">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-violet-600 to-cyan-400 text-white flex items-center justify-center flex-shrink-0 shadow-lg shadow-violet-500/30">
-                <Bot size={22} className="stroke-[2.5]" />
+              <div className="w-10 h-10 rounded-xl bg-violet-600 text-white flex items-center justify-center flex-shrink-0 shadow-md relative">
+                <MusicNotes size={22} weight="duotone" />
+                <Sparkle size={11} weight="fill" className="absolute top-1.5 right-1.5 text-amber-300" />
               </div>
               <div className="min-w-0">
-                <p className="font-extrabold text-sm text-gradient-emerald">AI Music Assistant</p>
-                <p className="text-[11px] text-zinc-400 font-medium">Tìm nhạc • Tra cứu • Điều khiển player</p>
+                <div className="flex items-center gap-1.5">
+                  <p className="font-bold text-sm text-white">Trợ lý Nhạc AI</p>
+                  <span className="text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded-md bg-amber-400/15 text-amber-300 border border-amber-400/30">
+                    AI
+                  </span>
+                </div>
+                <p className="text-[11px] text-zinc-400 font-medium">Tìm nhạc • Gợi ý • Điều khiển bài hát</p>
               </div>
             </div>
 
-            <button
-              onClick={() => setOpen(false)}
-              className="p-1.5 rounded-full hover:bg-white/10 text-zinc-400 hover:text-white transition-all"
-              title="Đóng"
-            >
-              <X size={18} />
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => navigate("/docs")}
+                className="p-1.5 rounded-xl hover:bg-white/10 text-zinc-400 hover:text-white transition-all"
+                title="Hướng dẫn sử dụng"
+              >
+                <BookOpenText size={18} />
+              </button>
+              <button
+                onClick={() => setShowSuggestions((prev) => !prev)}
+                className={`p-1.5 rounded-xl transition-all ${
+                  showSuggestions
+                    ? "bg-violet-600/30 text-violet-300 border border-violet-500/40"
+                    : "hover:bg-white/10 text-zinc-400 hover:text-white"
+                }`}
+                title={showSuggestions ? "Ẩn danh mục gợi ý" : "Hiện danh mục gợi ý"}
+              >
+                <Lightbulb size={18} weight={showSuggestions ? "fill" : "regular"} />
+              </button>
+              <button
+                onClick={() => setOpen(false)}
+                className="p-1.5 rounded-full hover:bg-white/10 text-zinc-400 hover:text-white transition-all"
+                title="Đóng"
+              >
+                <X size={18} />
+              </button>
+            </div>
           </div>
 
-          {/* Messages Container: Hỗ trợ bôi đen (select-text) & copy */}
+          {/* Messages Container */}
           <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3.5 select-text cursor-text">
             {messages.map((msg, i) => (
               <div key={i} className={`flex items-start gap-1.5 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                 <div
-                  className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm whitespace-pre-line shadow-md transition-all ${msg.role === "user"
-                      ? "bg-gradient-to-tr from-violet-600 via-purple-500 to-cyan-400 text-white font-semibold rounded-br-none shadow-violet-500/20"
+                  className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm whitespace-pre-line shadow-sm transition-all ${msg.role === "user"
+                      ? "bg-violet-600 text-white font-medium rounded-br-none"
                       : "bg-white/10 backdrop-blur-md text-zinc-100 rounded-bl-none border border-white/10"
                     }`}
                 >
@@ -344,9 +438,6 @@ export default function ChatBox() {
                     </div>
                   )}
 
-                  {/* Lyrics */}
-                  {msg.lyrics && <LyricsBlock lyrics={msg.lyrics} currentSong={currentSong} />}
-
                   {/* Bài hát được gợi ý */}
                   {msg.songs.length > 0 && (
                     <div className="mt-2.5 space-y-1.5 select-none">
@@ -354,15 +445,30 @@ export default function ChatBox() {
                         <button
                           key={`${song.id}-${song.title}`}
                           onClick={() => handlePlaySong(song, msg.songs)}
-                          className="w-full flex items-center gap-2.5 bg-black/40 hover:bg-violet-500/20 rounded-xl px-2.5 py-2 text-left transition-all duration-200 border border-white/5 group"
+                          className="w-full flex items-center gap-2.5 bg-black/40 hover:bg-violet-600/20 rounded-xl px-2.5 py-2 text-left transition-all duration-150 border border-white/5 group"
                         >
-                          <img src={song.albumCover} alt={song.title} loading="lazy" className="w-9 h-9 rounded-lg object-cover flex-shrink-0 shadow" />
+                          <img src={song.albumCover} alt={song.title} loading="lazy" className="w-9 h-9 rounded-lg object-cover flex-shrink-0 shadow-sm" />
                           <div className="truncate flex-1 min-w-0">
-                            <p className="text-xs font-bold truncate text-white group-hover:text-violet-300">{song.title}</p>
+                            <p className="text-xs font-semibold truncate text-white group-hover:text-violet-300">{song.title}</p>
                             <p className="text-[11px] text-zinc-400 truncate">{song.artist}</p>
                           </div>
-                          <span className="text-[10px] text-zinc-500 font-medium">{formatDuration(song.duration)}</span>
-                          <Play size={15} fill="#c084fc" className="text-purple-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                          <span className="text-[10px] text-zinc-500 font-medium tabular-nums">{formatDuration(song.duration)}</span>
+                          <Play size={14} weight="fill" className="text-violet-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Câu gợi ý tiếp theo (follow-up chips) */}
+                  {msg.suggestions?.length > 0 && (
+                    <div className="mt-2.5 flex flex-wrap gap-1.5 select-none">
+                      {msg.suggestions.map((s) => (
+                        <button
+                          key={s}
+                          onClick={() => handleSend(s)}
+                          className="text-[10px] font-medium bg-violet-600/20 hover:bg-violet-600/40 text-violet-200 rounded-full px-2.5 py-1 transition-all border border-violet-500/30 active:scale-95"
+                        >
+                          {s}
                         </button>
                       ))}
                     </div>
@@ -373,10 +479,10 @@ export default function ChatBox() {
                 {msg.role === "bot" && (
                   <button
                     onClick={() => handleCopyText(msg.text, i)}
-                    className="p-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-zinc-400 hover:text-white transition-all flex-shrink-0 mt-1 select-none"
+                    className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white transition-all flex-shrink-0 mt-1 select-none"
                     title={copiedIndex === i ? "Đã sao chép!" : "Sao chép tin nhắn"}
                   >
-                    {copiedIndex === i ? <Check size={13} className="text-cyan-400" /> : <Copy size={13} />}
+                    {copiedIndex === i ? <Check size={13} weight="bold" className="text-violet-400" /> : <Copy size={13} />}
                   </button>
                 )}
               </div>
@@ -384,31 +490,56 @@ export default function ChatBox() {
 
             {sending && (
               <div className="flex justify-start">
-                <div className="bg-white/10 text-zinc-300 rounded-2xl rounded-bl-none px-4 py-3 text-xs font-medium flex items-center gap-3 border border-white/10 shadow-md">
-                  <div className="flex items-end gap-1 h-4">
-                    <span className="w-1 bg-cyan-400 rounded-full equalizer-bar-1" />
+                <div className="bg-white/10 text-zinc-300 rounded-2xl rounded-bl-none px-4 py-2.5 text-xs font-medium flex items-center gap-2.5 border border-white/10 shadow-sm">
+                  <div className="flex items-end gap-1 h-3.5">
+                    <span className="w-1 bg-violet-400 rounded-full equalizer-bar-1" />
                     <span className="w-1 bg-purple-400 rounded-full equalizer-bar-2" />
-                    <span className="w-1 bg-violet-400 rounded-full equalizer-bar-3" />
-                    <span className="w-1 bg-cyan-300 rounded-full equalizer-bar-4" />
+                    <span className="w-1 bg-violet-300 rounded-full equalizer-bar-3" />
                   </div>
-                  <span>Đang phân tích giai điệu JamWave AI...</span>
+                  <span>JamWave AI đang xử lý...</span>
                 </div>
               </div>
             )}
           </div>
 
-          {/* Quick suggestions */}
-          {messages.length <= 2 && (
-            <div className="px-4 pb-2 flex gap-1.5 flex-wrap">
-              {QUICK_SUGGESTIONS.map((s) => (
-                <button
-                  key={s}
-                  onClick={() => handleSend(s)}
-                  className="text-[11px] font-semibold bg-white/5 hover:bg-white/15 text-zinc-300 hover:text-white rounded-xl px-3 py-1.5 transition-all border border-white/10 active:scale-95"
-                >
-                  {s}
-                </button>
-              ))}
+          {/* Category Tabs & Quick Suggestions */}
+          {showSuggestions && (
+            <div className="px-4 pb-2.5 pt-2 border-t border-white/10 bg-white/[0.03]">
+              {/* Category tabs grid: 4 columns, perfect fit */}
+              <div className="grid grid-cols-4 gap-1.5 pb-1">
+                {CATEGORY_TABS.map((cat) => {
+                  const Icon = cat.icon;
+                  const isActive = activeTab === cat.id;
+                  return (
+                    <button
+                      key={cat.id}
+                      onClick={() => setActiveTab(cat.id)}
+                      className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-xl text-[11px] font-bold transition-all select-none ${
+                        isActive
+                          ? "bg-violet-600 text-white shadow-md shadow-violet-950/60"
+                          : "bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-zinc-200 border border-white/5"
+                      }`}
+                    >
+                      <Icon size={14} weight={isActive ? "fill" : "bold"} className="flex-shrink-0" />
+                      <span className="truncate">{cat.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Category Prompts Grid: 2 columns with roomy spacing */}
+              <div className="grid grid-cols-2 gap-1.5 mt-1.5 max-h-[82px] overflow-y-auto no-scrollbar">
+                {currentCategory.prompts.map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => handleSend(s)}
+                    className="text-left text-[11px] font-medium leading-snug bg-white/5 hover:bg-violet-600/20 hover:border-violet-500/40 text-zinc-300 hover:text-white rounded-xl px-3 py-2 transition-all border border-white/10 active:scale-95 truncate shadow-sm"
+                    title={s}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
@@ -423,15 +554,27 @@ export default function ChatBox() {
                   if (e.key === "Enter") handleSend();
                 }}
                 placeholder="Nhập câu hỏi hoặc tên bài hát..."
-                className="flex-1 bg-white/5 border border-white/10 text-white text-sm px-4 py-2.5 rounded-2xl outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-400/20 transition-all placeholder-zinc-500"
+                className="flex-1 bg-white/5 border border-white/10 text-white text-sm px-4 py-2.5 rounded-2xl outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500/20 transition-all placeholder-zinc-500"
               />
+              <button
+                onClick={voiceListening ? stopVoice : () => startVoice()}
+                disabled={!voiceSupported || sending}
+                className={`w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 transition-all shadow-md active:scale-95 ${
+                  voiceListening
+                    ? "bg-red-500 hover:bg-red-400 text-white animate-pulse"
+                    : "bg-white/10 hover:bg-white/20 text-zinc-300 hover:text-white disabled:opacity-40"
+                }`}
+                title={voiceSupported ? "Nhập bằng giọng nói" : "Trình duyệt chưa hỗ trợ nhập giọng nói"}
+              >
+                <MicrophoneStage size={18} weight={voiceListening ? "fill" : "bold"} />
+              </button>
               <button
                 onClick={() => handleSend()}
                 disabled={!input.trim() || sending}
-                className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-violet-600 to-cyan-400 text-white flex items-center justify-center hover:scale-105 disabled:opacity-40 disabled:hover:scale-100 transition-all flex-shrink-0 shadow-lg shadow-violet-500/25 active:scale-95"
+                className="w-10 h-10 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white flex items-center justify-center disabled:opacity-40 transition-all flex-shrink-0 shadow-md active:scale-95"
                 title="Gửi"
               >
-                <Send size={17} />
+                <PaperPlaneTilt size={18} weight="fill" />
               </button>
             </div>
           </div>

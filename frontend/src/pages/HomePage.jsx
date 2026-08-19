@@ -6,7 +6,7 @@ import { fetchArtists, fetchFollowedArtists } from "../api/artists";
 import { fetchRecentListens, fetchTopListens } from "../api/listens";
 import { usePlayerStore } from "../usePlayerStore";
 import { useAuthStore } from "../useAuthStore";
-import { Play, Pause, Loader2 } from "lucide-react";
+import { Play, Pause, Shuffle, CaretRight, Sparkle, SpinnerGap } from "@phosphor-icons/react";
 import SongTable from "../components/SongTable";
 import SourceBadge from "../components/SourceBadge";
 import ArtistAvatar from "../components/ArtistAvatar";
@@ -41,7 +41,7 @@ export default function HomePage() {
         if (cancelled) return;
         setSongs(data.songs);
         setTotalSongs(data.total);
-        setQueue(data.songs); // Nạp danh sách bài hát vào queue hàng chờ
+        setQueue(data.songs);
         setLoading(false);
       })
       .catch((err) => {
@@ -51,7 +51,6 @@ export default function HomePage() {
         setLoading(false);
       });
 
-    // "Gần đây nghe nhiều": đã đăng nhập = lịch sử nghe của chính mình, khách = top tuần
     if (user) {
       fetchRecentListens(6)
         .then((data) => {
@@ -88,7 +87,6 @@ export default function HomePage() {
     };
   }, [setQueue, user]);
 
-  // Xử lý khi nhấn vào 1 bài hát
   const handleSelectSong = (song) => {
     if (currentSong?.id === song.id) {
       togglePlay();
@@ -97,7 +95,6 @@ export default function HomePage() {
     }
   };
 
-  // Phát ngẫu nhiên: lấy bài hát ngẫu nhiên từ toàn thư viện, trộn hàng chờ
   const handleShufflePlay = async () => {
     if (shuffling) return;
     setShuffling(true);
@@ -122,14 +119,14 @@ export default function HomePage() {
   // Skeleton Loading State
   if (loading) {
     return (
-      <div className="space-y-6">
-        <div className="h-8 w-48 bg-zinc-800 rounded animate-pulse"></div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-          {[...Array(5)].map((_, i) => (
-            <div key={i} className="bg-zinc-800/40 p-4 rounded-md space-y-3 animate-pulse">
-              <div className="aspect-square bg-zinc-800 rounded-md w-full"></div>
-              <div className="h-4 bg-zinc-800 rounded w-3/4"></div>
-              <div className="h-3 bg-zinc-800 rounded w-1/2"></div>
+      <div className="space-y-8">
+        <div className="h-64 bg-white/5 rounded-3xl animate-pulse" />
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="bg-white/5 p-4 rounded-2xl space-y-3 animate-pulse">
+              <div className="aspect-square bg-white/10 rounded-xl w-full" />
+              <div className="h-4 bg-white/10 rounded w-3/4" />
+              <div className="h-3 bg-white/5 rounded w-1/2" />
             </div>
           ))}
         </div>
@@ -137,68 +134,82 @@ export default function HomePage() {
     );
   }
 
-  // Error State
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center h-64 text-center">
-        <p className="text-red-400 font-semibold text-lg mb-2">Không thể tải dữ liệu bài hát</p>
+        <p className="text-rose-400 font-semibold text-base mb-2">Không thể tải dữ liệu bài hát</p>
         <p className="text-zinc-500 text-sm">{error}</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-10 select-none pb-8">
-      {/* 0. Hero Section Futuristic Video */}
-      <section className="relative overflow-hidden rounded-3xl p-8 sm:p-10 border border-white/20 shadow-2xl group transition-all duration-700 bg-black">
-        {/* Layer 1: High Visibility Video Background */}
+    <div className="space-y-12 select-none pb-8">
+      {/* 0. Hero Section Editorial */}
+      <section className="relative overflow-hidden rounded-3xl p-8 sm:p-10 border border-white/10 shadow-2xl group transition-all duration-500 bg-[#12121a]">
+        {/* Subtle Video Background with Overlay */}
         <video
           autoPlay
           loop
           muted
           playsInline
-          className="absolute inset-0 w-full h-full object-cover opacity-85 saturate-125 pointer-events-none group-hover:scale-105 transition-transform duration-1000"
+          className="absolute inset-0 w-full h-full object-cover opacity-40 saturate-100 pointer-events-none"
         >
           <source src="/hero-video.mp4" type="video/mp4" />
           <source src="https://assets.mixkit.co/videos/preview/mixkit-party-lights-and-people-dancing-at-a-concert-43282-large.mp4" type="video/mp4" />
         </video>
 
-        {/* Layer 2: Soft Left Gradient Overlay (Only behind text on left) */}
-        <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/30 to-transparent pointer-events-none" />
+        {/* Ambient Dark Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0d0d12]/95 via-[#0d0d12]/80 to-transparent pointer-events-none" />
 
-        {/* Layer 4: Text Content & Action Button */}
+        {/* Content */}
         <div className="relative z-10 flex flex-col md:flex-row items-start md:items-end justify-between gap-6">
           <div className="space-y-3 max-w-xl">
-            <span className="text-xs font-extrabold uppercase tracking-widest text-cyan-300 px-3.5 py-1 rounded-full bg-violet-500/25 border border-violet-400/40 shadow-sm backdrop-blur-md inline-block">
-              INDIE WAVE
-            </span>
-            <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-white drop-shadow-md leading-snug">
-              {user ? <span className="block text-lg sm:text-xl text-gradient-emerald mb-1">{getGreeting()}, {user.name} 👋</span> : null}
-              Chạm vào những giai điệu <br className="hidden sm:inline" />
-              <span className="text-gradient-emerald">không thuộc dòng chính.</span>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-bold uppercase tracking-widest text-violet-300 px-3 py-1 rounded-full bg-violet-900/30 border border-violet-700/30 inline-flex items-center gap-1.5">
+                <Sparkle size={13} weight="fill" />
+                INDIE WAVE
+              </span>
+            </div>
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-white leading-tight">
+              {user ? (
+                <span className="block text-xl sm:text-2xl text-violet-300 mb-1 font-bold">
+                  {getGreeting()}, {user.name} 👋
+                </span>
+              ) : null}
+              Khám phá âm nhạc <br className="hidden sm:inline" />
+              <span className="text-white">độc lập & tự do.</span>
             </h1>
-            <p className="text-sm text-zinc-200 font-medium leading-relaxed drop-shadow-sm max-w-lg">
-              Khám phá những nghệ sĩ độc lập, những thanh âm mới và những bản nhạc đáng để bạn nghe theo cách riêng.
+            <p className="text-sm text-zinc-300 font-normal leading-relaxed max-w-lg">
+              Thưởng thức hàng ngàn bài hát từ các nghệ sĩ indie tài năng không giới hạn trên nền tảng JamWave.
             </p>
           </div>
-          <div className="flex items-center gap-3 md:pb-1">
+
+          <div className="flex items-center gap-3">
             <button
               onClick={handleShufflePlay}
               disabled={shuffling}
-              className="px-6 py-3 rounded-full bg-gradient-to-r from-violet-600 via-purple-500 to-cyan-400 hover:from-violet-500 hover:to-cyan-300 text-white font-extrabold text-sm transition-all duration-200 shadow-lg shadow-violet-500/35 active:scale-95 flex items-center gap-2 disabled:opacity-60"
+              className="px-6 py-3 rounded-full bg-violet-600 hover:bg-violet-500 text-white font-bold text-sm transition-all duration-150 shadow-lg shadow-violet-950/60 active:scale-95 flex items-center gap-2 disabled:opacity-60"
             >
-              {shuffling ? <Loader2 size={18} className="animate-spin" /> : <Play size={18} fill="white" />} Phát ngẫu nhiên
+              {shuffling ? (
+                <SpinnerGap size={18} className="animate-spin" />
+              ) : (
+                <Shuffle size={18} weight="bold" />
+              )}
+              Phát ngẫu nhiên
             </button>
           </div>
         </div>
       </section>
 
-      {/* 1. Lưới Thẻ Nổi Bật (Featured Glass Cards Grid with Glow & Scale) */}
+      {/* 1. Lưới Thẻ Nổi Bật (Featured Cards Grid) */}
       <section>
-        <h2 className="text-xl font-bold tracking-tight mb-4 text-white flex items-center gap-2">
-          {user ? "Gần đây nghe nhiều" : "Top bài hát tuần này"}
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white">
+            {user ? "Gần đây nghe nhiều" : "Bài hát thịnh hành tuần này"}
+          </h2>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
           {(recentSongs.length > 0 ? recentSongs : songs.slice(0, 6)).map((song) => {
             const isThisSongSelected = currentSong?.id === song.id;
 
@@ -206,40 +217,47 @@ export default function HomePage() {
               <div
                 key={`featured-${song.id}`}
                 onClick={() => handleSelectSong(song)}
-                className="flex items-center gap-4 glass-card p-2.5 rounded-2xl group cursor-pointer pr-4 transition-all duration-300 hover:border-violet-400/50 hover:shadow-[0_0_20px_rgba(168,85,247,0.3)]"
+                className={`flex items-center gap-3.5 glass-card p-2.5 rounded-2xl group cursor-pointer pr-4 transition-all duration-200 ${
+                  isThisSongSelected
+                    ? "border-violet-500/50 bg-violet-600/10"
+                    : "hover:border-violet-500/30"
+                }`}
               >
-                <div className="relative w-16 h-16 rounded-xl overflow-hidden shadow-md flex-shrink-0">
+                <div className="relative w-14 h-14 rounded-xl overflow-hidden shadow-sm flex-shrink-0">
                   <img
                     src={song.albumCover}
                     alt={song.title}
                     loading="lazy"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
                 </div>
 
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="font-bold text-sm truncate text-zinc-100 group-hover:text-cyan-300 transition-colors">{song.title}</span>
+                    <span className="font-semibold text-sm truncate text-zinc-100 group-hover:text-violet-200 transition-colors">
+                      {song.title}
+                    </span>
                     <SourceBadge source={song.source} />
                   </div>
-                  <p className="text-[11px] text-zinc-400 truncate mt-0.5 font-medium">{song.artist}</p>
+                  <p className="text-xs text-zinc-400 truncate mt-0.5 font-medium">{song.artist}</p>
                   {song.listenCount > 0 && (
-                    <span className="text-[10px] font-semibold text-cyan-400/90 mt-0.5 inline-block">
+                    <span className="text-[10px] font-semibold tabular-nums text-violet-400 mt-0.5 inline-block">
                       {song.listenCount} lượt nghe
                     </span>
                   )}
                 </div>
 
                 <button
-                  className={`w-10 h-10 rounded-full bg-gradient-to-tr from-violet-600 to-cyan-400 text-white flex items-center justify-center shadow-lg transform transition-all duration-300 ${isThisSongSelected
-                      ? "opacity-100 scale-100 shadow-violet-500/40"
+                  className={`w-9 h-9 rounded-full bg-violet-600 text-white flex items-center justify-center shadow-md transform transition-all duration-150 ${
+                    isThisSongSelected
+                      ? "opacity-100 scale-100"
                       : "opacity-0 scale-90 group-hover:opacity-100 group-hover:scale-100"
-                    }`}
+                  }`}
                 >
                   {isThisSongSelected && isPlaying ? (
-                    <Pause fill="white" className="text-white" size={18} />
+                    <Pause weight="fill" size={16} />
                   ) : (
-                    <Play fill="white" className="text-white ml-0.5" size={18} />
+                    <Play weight="fill" className="ml-0.5" size={16} />
                   )}
                 </button>
               </div>
@@ -248,13 +266,17 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 2. Album nổi bật với Glow & Scale */}
+      {/* 2. Album nổi bật */}
       {albums.length > 0 && (
         <section>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold tracking-tight text-white">Album nổi bật</h2>
-            <Link to="/albums" className="text-xs font-semibold text-cyan-400 hover:underline transition-all">
-              Xem tất cả
+            <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white">Album nổi bật</h2>
+            <Link
+              to="/albums"
+              className="text-xs font-bold text-violet-400 hover:text-violet-300 transition-colors flex items-center gap-1"
+            >
+              <span>Xem tất cả</span>
+              <CaretRight size={14} weight="bold" />
             </Link>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
@@ -262,22 +284,24 @@ export default function HomePage() {
               <Link
                 key={album.id}
                 to={`/album/${album.id}`}
-                className="group glass-card p-3.5 rounded-2xl transition-all duration-300 hover:border-violet-500/40 hover:shadow-[0_0_20px_rgba(168,85,247,0.35)]"
+                className="group glass-card p-3.5 rounded-2xl transition-all duration-200"
               >
-                <div className="aspect-square rounded-xl overflow-hidden shadow-lg mb-3 bg-zinc-800 relative">
+                <div className="aspect-square rounded-xl overflow-hidden shadow-md mb-3 bg-zinc-800 relative">
                   <img
                     src={album.coverImg}
                     alt={album.title}
                     loading="lazy"
-                    className="w-full h-full object-cover group-hover:scale-[1.05] transition-transform duration-500"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-violet-600 to-cyan-400 text-white flex items-center justify-center shadow-lg translate-y-4 group-hover:translate-y-0 transition-all duration-300">
-                      <Play size={18} fill="white" className="ml-0.5" />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-end p-2.5">
+                    <div className="w-9 h-9 rounded-full bg-violet-600 text-white flex items-center justify-center shadow-lg translate-y-2 group-hover:translate-y-0 transition-all duration-200">
+                      <Play size={16} weight="fill" className="ml-0.5" />
                     </div>
                   </div>
                 </div>
-                <p className="font-bold text-sm truncate text-white group-hover:text-cyan-300 transition-colors">{album.title}</p>
+                <p className="font-bold text-sm truncate text-white group-hover:text-violet-300 transition-colors">
+                  {album.title}
+                </p>
                 <p className="text-xs text-zinc-400 truncate mt-0.5 font-medium">{album.artist}</p>
               </Link>
             ))}
@@ -289,9 +313,13 @@ export default function HomePage() {
       {artists.length > 0 && (
         <section>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold tracking-tight text-white">Nghệ sĩ yêu thích</h2>
-            <Link to="/artists" className="text-xs font-semibold text-cyan-400 hover:underline transition-all">
-              Xem tất cả
+            <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white">Nghệ sĩ yêu thích</h2>
+            <Link
+              to="/artists"
+              className="text-xs font-bold text-violet-400 hover:text-violet-300 transition-colors flex items-center gap-1"
+            >
+              <span>Xem tất cả</span>
+              <CaretRight size={14} weight="bold" />
             </Link>
           </div>
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-4">
@@ -299,17 +327,18 @@ export default function HomePage() {
               <Link
                 key={artist.name}
                 to={`/artist/${encodeURIComponent(artist.name)}`}
-                className="group flex flex-col items-center gap-3 p-2 rounded-2xl hover:bg-white/5 transition-all duration-300"
+                className="group flex flex-col items-center gap-2.5 p-2 rounded-2xl hover:bg-white/5 transition-all duration-200"
               >
-                <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden shadow-xl border-2 border-transparent group-hover:border-violet-400 transition-all duration-300 p-0.5">
-                  <img
-                    src={artist.coverImg}
-                    alt={artist.name}
-                    loading="lazy"
-                    className="w-full h-full object-cover rounded-full group-hover:scale-110 transition-transform duration-500"
+                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden shadow-md border-2 border-transparent group-hover:border-violet-500 transition-all duration-200 p-0.5">
+                  <ArtistAvatar
+                    name={artist.name}
+                    image={artist.coverImg}
+                    className="w-full h-full rounded-full group-hover:scale-105 transition-transform duration-300"
                   />
                 </div>
-                <p className="font-bold text-xs sm:text-sm truncate w-full text-center text-zinc-200 group-hover:text-violet-300 transition-colors">{artist.name}</p>
+                <p className="font-bold text-xs sm:text-sm truncate w-full text-center text-zinc-300 group-hover:text-violet-300 transition-colors">
+                  {artist.name}
+                </p>
               </Link>
             ))}
           </div>
@@ -320,9 +349,13 @@ export default function HomePage() {
       {user && followedArtists.length > 0 && (
         <section>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold tracking-tight text-white">Nghệ sĩ đang theo dõi</h2>
-            <Link to="/artists" className="text-xs font-semibold text-cyan-400 hover:underline transition-all">
-              Xem tất cả
+            <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white">Nghệ sĩ đang theo dõi</h2>
+            <Link
+              to="/artists"
+              className="text-xs font-bold text-violet-400 hover:text-violet-300 transition-colors flex items-center gap-1"
+            >
+              <span>Xem tất cả</span>
+              <CaretRight size={14} weight="bold" />
             </Link>
           </div>
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-4">
@@ -330,16 +363,16 @@ export default function HomePage() {
               <Link
                 key={artist.name}
                 to={`/artist/${encodeURIComponent(artist.name)}`}
-                className="group flex flex-col items-center gap-3 p-2 rounded-2xl hover:bg-white/5 transition-all duration-300"
+                className="group flex flex-col items-center gap-2.5 p-2 rounded-2xl hover:bg-white/5 transition-all duration-200"
               >
-                <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden shadow-xl border-2 border-violet-400/60 group-hover:border-violet-400 transition-all duration-300 p-0.5">
+                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden shadow-md border-2 border-violet-500/50 group-hover:border-violet-500 transition-all duration-200 p-0.5">
                   <ArtistAvatar
                     name={artist.name}
                     image={artist.coverImg}
-                    className="w-full h-full rounded-full text-2xl"
+                    className="w-full h-full rounded-full"
                   />
                 </div>
-                <p className="font-bold text-xs sm:text-sm truncate w-full text-center text-zinc-200 group-hover:text-violet-300 transition-colors">
+                <p className="font-bold text-xs sm:text-sm truncate w-full text-center text-zinc-300 group-hover:text-violet-300 transition-colors">
                   {artist.name}
                 </p>
               </Link>
@@ -348,11 +381,11 @@ export default function HomePage() {
         </section>
       )}
 
-      {/* 5. Bảng Danh Sách Bài Hát (Song Table List) */}
+      {/* 5. Bảng Danh Sách Bài Hát */}
       <section>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold tracking-tight text-white">Bảng Xếp Hạng Bài Hát</h2>
-          <span className="text-xs text-zinc-400 font-medium">Tổng cộng {totalSongs} bài hát</span>
+          <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white">Bảng Xếp Hạng Bài Hát</h2>
+          <span className="text-xs text-zinc-400 font-medium tabular-nums">Tổng cộng {totalSongs} bài hát</span>
         </div>
         <SongTable songs={songs.slice(0, 100)} />
       </section>

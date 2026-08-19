@@ -1,3 +1,6 @@
+import { useState } from "react";
+import { getArtistPlaceholder } from "../utils/artistPlaceholders";
+
 const GRADIENTS = [
   "from-violet-600 to-cyan-400",
   "from-fuchsia-600 to-violet-400",
@@ -23,14 +26,21 @@ const hash = (str) => {
   return h;
 };
 
-// Ảnh chân dung nghệ sĩ; không có ảnh -> avatar chữ cái đầu + gradient
+// Ảnh chân dung nghệ sĩ: ảnh thật -> ảnh nhạc placeholder -> avatar chữ cái + gradient
 export default function ArtistAvatar({ name, image, className = "w-12 h-12 rounded-xl text-base" }) {
-  if (image) {
+  // Lưu tên nghệ sĩ có ảnh bị lỗi (tự reset khi đổi nghệ sĩ)
+  const [failedName, setFailedName] = useState(null);
+
+  const src = image || getArtistPlaceholder(name);
+  const imgFailed = failedName === name && src;
+
+  if (src && !imgFailed) {
     return (
       <img
-        src={image}
+        src={src}
         alt={name}
         loading="lazy"
+        onError={() => setFailedName(name)}
         className={`object-cover flex-shrink-0 shadow border border-white/10 ${className}`}
       />
     );

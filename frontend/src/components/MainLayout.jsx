@@ -3,24 +3,28 @@ import Sidebar from "./Sidebar";
 import TopBar from "./TopBar";
 import PlayerBar from "./PlayerBar";
 import ChatBox from "./ChatBox";
+import useKeyboardShortcuts from "../hooks/useKeyboardShortcuts";
 
 export default function MainLayout() {
+  useKeyboardShortcuts();
+
   return (
-    <div className="relative flex h-screen bg-[#070709] text-white overflow-hidden font-sans">
-      {/* Dynamic Ambient Background Glow Blobs */}
-      <div className="absolute top-[-10%] left-[-5%] w-[40vw] h-[40vw] rounded-full bg-violet-600/20 blur-[130px] pointer-events-none animate-pulse-glow" />
-      <div className="absolute bottom-[-10%] right-[-5%] w-[45vw] h-[45vw] rounded-full bg-cyan-500/20 blur-[150px] pointer-events-none animate-pulse-glow" style={{ animationDelay: "2s" }} />
-      <div className="absolute top-[30%] left-[40%] w-[35vw] h-[35vw] rounded-full bg-fuchsia-600/15 blur-[160px] pointer-events-none animate-pulse-glow" style={{ animationDelay: "4s" }} />
+    <div className="relative flex h-screen bg-[#0d0d12] text-zinc-100 overflow-hidden font-sans">
+      {/* Subtle Ambient Background Spotlight */}
+      <div className="absolute top-[-15%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-violet-900/15 blur-[160px] pointer-events-none" />
+      <div className="absolute bottom-[-20%] right-[-10%] w-[40vw] h-[40vw] rounded-full bg-purple-950/10 blur-[180px] pointer-events-none" />
 
       {/* Sidebar bên trái */}
       <Sidebar />
 
       {/* Vùng nội dung chính bên phải */}
-      <div className="flex-1 flex flex-col h-full overflow-hidden p-3 pl-1 z-10">
+      <div className="flex-1 flex flex-col h-full overflow-hidden p-3 pl-1.5 z-10">
         <div className="flex-1 glass-panel rounded-2xl overflow-y-auto flex flex-col relative shadow-2xl transition-all duration-300">
           <TopBar />
-          <main className="flex-1 p-6 pb-32">
+          <main className="flex-1 p-6 sm:p-8">
             <Outlet />
+            {/* Spacer đảm bảo mọi nội dung và nút bấm ở cuối trang luôn cuộn lên hoàn toàn trên PlayerBar */}
+            <div className="h-32 w-full flex-shrink-0 pointer-events-none" aria-hidden="true" />
           </main>
         </div>
       </div>

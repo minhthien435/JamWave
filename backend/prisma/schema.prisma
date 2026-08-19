@@ -20,7 +20,7 @@ model Album {
 
 // Song model
 model Song {
-  id          Int            @id @default(autoincrement())
+  id          Int                          @id @default(autoincrement())
   title       String
   artist      String
   albumCover  String
@@ -28,42 +28,45 @@ model Song {
   duration    Int
   releaseYear Int?
   genre       String?
-  source      String?        @default("jamendo")
-  lyrics      String?
+  source      String?                      @default("jamendo")
   albumId     Int?
-  album       Album?         @relation(fields: [albumId], references: [id], onDelete: SetNull)
+  album       Album?                       @relation(fields: [albumId], references: [id], onDelete: SetNull)
   playlists   PlaylistSong[]
   likedBy     UserSong[]
   listens     SongListen[]
-  lyric       Lyric?
   // MusicBrainz enrichment (metadata nền, CC0)
-  mbid        String?        // MusicBrainz recording ID
-  isrc        String?        // International Standard Recording Code
-  artistMbid  String?        // MusicBrainz artist ID
+  mbid        String? // MusicBrainz recording ID
+  isrc        String? // International Standard Recording Code
+  artistMbid  String? // MusicBrainz artist ID
   // Khử trùng: trỏ tới bài hát "chính" cùng track (qua Jamendo/Audius)
   duplicateOf Int?
-  duplicate   Song?          @relation("SongDuplicates", fields: [duplicateOf], references: [id], onDelete: SetNull)
-  duplicates  Song[]         @relation("SongDuplicates")
+  duplicate   Song?                        @relation("SongDuplicates", fields: [duplicateOf], references: [id], onDelete: SetNull)
+  duplicates  Song[]                       @relation("SongDuplicates")
   // Vector embedding (pgvector, Gemini embedding 3072 chiều) cho semantic search
   // (2442 bài -> seq-scan cosine là đủ nhanh, không cần index HNSW do dim>2000)
   embedding   Unsupported("vector(3072)")?
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @default(now()) @updatedAt
+  createdAt   DateTime                     @default(now())
+  updatedAt   DateTime                     @default(now()) @updatedAt
 }
 
 // User model
 model User {
-  id         Int          @id @default(autoincrement())
-  email      String       @unique
-  password   String
-  name       String
-  role       String       @default("USER")
-  playlists  Playlist[]
-  likedSongs UserSong[]
-  listens    SongListen[]
-  followedArtists UserArtist[]
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @default(now()) @updatedAt
+  id                       Int          @id @default(autoincrement())
+  email                    String       @unique
+  password                 String
+  name                     String
+  role                     String       @default("USER")
+  isVerified               Boolean      @default(false)
+  verificationToken        String?
+  verificationTokenExpires DateTime?
+  googleId                 String?      @unique
+  avatarUrl                String?
+  playlists                Playlist[]
+  likedSongs               UserSong[]
+  listens                  SongListen[]
+  followedArtists          UserArtist[]
+  createdAt                DateTime     @default(now())
+  updatedAt                DateTime     @default(now()) @updatedAt
 }
 
 // Playlist model
@@ -110,19 +113,6 @@ model SongListen {
 
   @@index([userId, listenedAt])
   @@index([songId, listenedAt])
-}
-
-// Lời bài hát cache từ LRCLIB (synced LRC + plain)
-model Lyric {
-  id           Int      @id @default(autoincrement())
-  songId       Int      @unique
-  song         Song     @relation(fields: [songId], references: [id], onDelete: Cascade)
-  plainLyrics  String?
-  syncedLyrics String?
-  instrumental Boolean  @default(false)
-  fetchedAt    DateTime @default(now())
-
-  @@index([fetchedAt])
 }
 
 // Nghệ sĩ người dùng đang theo dõi (nghệ sĩ = tên string, chưa có bảng Artist riêng)

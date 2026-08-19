@@ -16,8 +16,140 @@ const {
 } = require("../services/aiService");
 
 // ---------- Response chuẩn hóa ----------
-function respond(res, { type = "text", reply = "", songs = [], artists = [], albums = [], lyrics = null, action = null, lang = "vi" }) {
-  return res.json({ type, reply, songs, artists, albums, lyrics, action, lang });
+function respond(res, { type = "text", reply = "", songs = [], artists = [], albums = [], action = null, lang = "vi", playlist = null }) {
+  const suggestions = buildSuggestions({ action, type, songs, artists, albums, playlist, lang });
+  const data = { type, reply, songs, artists, albums, action, lang, playlist, suggestions };
+
+  if (res.locals?.sse) {
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("X-Accel-Buffering", "no");
+    res.flushHeaders?.();
+    res.write(`data: ${JSON.stringify({ type: "result", data })}\n\n`);
+
+    const text = String(data.reply || "");
+    if (!text) {
+      res.write(`data: ${JSON.stringify({ type: "done" })}\n\n`);
+      res.end();
+      return res;
+    }
+    const safeWrite = (chunk) => {
+      try {
+        res.write(chunk);
+        return true;
+      } catch {
+        clearInterval(timer);
+        return false;
+      }
+    };
+    // Stream reply text theo chunk (hiệu ứng gõ chữ) rồi đóng kết nối
+    const chunkSize = Math.max(1, Math.ceil(text.length / 24));
+    let i = 0;
+    const timer = setInterval(() => {
+      const chunk = text.slice(i, i + chunkSize);
+      i += chunkSize;
+      if (!safeWrite(`data: ${JSON.stringify({ type: "text", text: chunk })}\n\n`)) return;
+      if (i >= text.length) {
+        clearInterval(timer);
+        safeWrite(`data: ${JSON.stringify({ type: "done" })}\n\n`);
+        try { res.end(); } catch { /* client đã đóng kết nối */ }
+      }
+    }, 24);
+    return res;
+  }
+
+  return res.json(data);
+}
+
+// ---------- Câu gợi ý tiếp theo (follow-up chips) ----------
+const SUGGESTIONS = {
+  vi: {
+    play: (artist) => ["Phát bài tiếp theo", `Thêm nhạc giống ${artist || "bài này"} vào hàng chờ`, "Bài tôi nghe nhiều nhất"],
+    append: ["Phát bài tiếp theo", "Phát nhạc ngẫu nhiên", "Tạo playlist nhạc lofi 10 bài"],
+    playlist: (title) => ["Phát nhạc ngẫu nhiên", `Thêm bài Breathe vào playlist ${title}`, "Tạo playlist nhạc lofi 10 bài"],
+    artist: (name) => [`Phát tất cả nhạc của ${name}`, `Tạo playlist nhạc của ${name} 10 bài`, "Bài tôi nghe nhiều nhất"],
+    album: ["Phát tất cả bài trong album này", "Thêm toàn bộ album vào hàng chờ", "Phát nhạc ngẫu nhiên"],
+    songs: (artist) => ["Phát nhạc ngẫu nhiên", `Thêm nhạc giống ${artist || "bài này"} vào hàng chờ`, "Bài tôi nghe nhiều nhất"],
+    text: ["Phát nhạc ngẫu nhiên", "Bài đang hot nhất", "Tìm nhạc không lời chill"],
+  },
+  en: {
+    play: (artist) => ["Play next", `Queue more like ${artist || "this song"}`, "My most-played songs"],
+    append: ["Play next", "Play random music", "Make a lofi playlist"],
+    playlist: (title) => ["Play random music", `Add Breathe to the playlist ${title}`, "Make a lofi playlist"],
+    artist: (name) => [`Play all ${name} songs`, `Make a ${name} playlist`, "My most-played songs"],
+    album: ["Play the whole album", "Queue the whole album", "Play random music"],
+    songs: (artist) => ["Play random music", `Queue more like ${artist || "this song"}`, "My most-played songs"],
+    text: ["Play random music", "Trending songs right now", "Find chill instrumental music"],
+  },
+};
+
+function buildSuggestions({ action, type, songs, artists, albums, playlist, lang }) {
+  const l = lang === "en" ? "en" : "vi";
+  const s = SUGGESTIONS[l];
+  const first = Array.isArray(songs) && songs.length ? songs[0] : null;
+  const artist = first?.artist || (Array.isArray(artists) && artists.length ? artists[0].name : null);
+  let list;
+  if (action === "play") list = s.play(artist);
+  else if (action === "append") list = s.append;
+  else if (action === "playlist_created" || action === "playlist_updated") list = s.playlist(playlist?.title || "playlist này");
+  else if (Array.isArray(artists) && artists.length) list = s.artist(artists[0].name);
+  else if (Array.isArray(albums) && albums.length) list = s.album;
+  else if (type === "songs") list = s.songs(artist);
+  else list = s.text;
+  return list.slice(0, 3);
+}
+
+// Định dạng thời lượng giây -> "m:ss"
+function fmtDuration(seconds) {
+  const sec = Math.max(0, Math.round(Number(seconds) || 0));
+  const m = Math.floor(sec / 60);
+  const s = String(sec % 60).padStart(2, "0");
+  return `${m}:${s}`;
+}
+
+// Lấy userId từ Bearer token (null nếu chưa đăng nhập / token lỗi)
+function getUserId(req) {
+  const header = req.headers.authorization;
+  if (header && header.startsWith("Bearer ")) {
+    try {
+      const decoded = jwt.verify(header.slice(7), process.env.JWT_SECRET);
+      if (decoded && decoded.userId) return Number(decoded.userId);
+    } catch {
+      // token không hợp lệ
+    }
+  }
+  return null;
+}
+
+// Nhận diện mục đích nghe (study/focus/sleep/workout/party/night/coding) từ câu
+function findPurposeKey(lower) {
+  const map = [
+    { re: /(học|ôn thi|study|revise)/i, key: "study" },
+    { re: /(tập trung|focus|concentrat)/i, key: "focus" },
+    { re: /(ngủ|đi ngủ|sleep)/i, key: "sleep" },
+    { re: /(tập luyện|tập gym|gym|workout|chạy bộ|running)/i, key: "workout" },
+    { re: /(tiệc|party|club)/i, key: "party" },
+    { re: /(đêm khuya|khuya|night|thức khuya)/i, key: "night" },
+    { re: /(lập trình|code|coding|viết code)/i, key: "coding" },
+  ];
+  return map.find((m) => m.re.test(lower))?.key || null;
+}
+
+// Trích bộ lọc nhạc (genre / mood / energy / vocal / purpose) từ câu mô tả tự nhiên
+function extractMusicAttrs(lower) {
+  const attrs = {};
+  const g = GENRE_KEYWORDS.find((x) => lower.includes(x.keyword));
+  if (g) attrs.genre = g.keyword;
+  const m = MOOD_MAP.find((x) => lower.includes(x.mood));
+  if (m) attrs.mood = m.mood;
+  if (/(không lời|khong loi|nhạc không lời|nhac khong loi|instrumental|without vocals|no vocal)/i.test(lower)) attrs.vocal = "instrumental";
+  else if (/(có lời|co loi|with vocals)/i.test(lower)) attrs.vocal = "vocals";
+  if (/(năng lượng cao|nang luong cao|mạnh|manh|upbeat|high energy|sôi động)/i.test(lower)) attrs.energy = "high";
+  else if (/(nhẹ nhàng|nhe nhang|thư giãn|thu gian|thả lỏng|chậm|cham|low energy|calm)/i.test(lower)) attrs.energy = "low";
+  const purpose = findPurposeKey(lower);
+  if (purpose) attrs.purpose = purpose;
+  return attrs;
 }
 
 // Session key: userId nếu có token hợp lệ, ngược lại theo IP
@@ -36,11 +168,16 @@ function getSessionKey(req) {
 
 // Trích tên bài hát từ câu: "phát bài See Tình", "lời bài Rap God", "tác giả bài hát Breathe là ai"...
 function extractSongTitle(msg) {
-  const songMatch = msg.match(/(?:bài\s+hát|bài|song|track)\s+["'“”]?([^"'“”?]+?)["'”]?\s*(?:\?|$)/i);
+  let songMatch = msg.match(/(?:bài\s+hát|bài|song|track)\s+["'“”]?([^"'“”?]+?)["'“”]?\s*(?:\?|$)/i);
+  if (!songMatch) {
+    songMatch = msg.match(/^(?:add|thêm|remove|bỏ|gỡ|xóa)\s+["'“”]?([^"'“”?]+?)["'“”]?\s+(?:to|vào|from|khỏi)\s+(?:the |a |an |my )?(?:playlist|danh sách)/i);
+  }
   if (!songMatch) return "";
   return songMatch[1]
     .trim()
     .replace(/\s+(của|bởi|by|là ai|là sáng tác của|do ai sáng tác|do ai hát)\s*.*$/i, "")
+    .replace(/\s+(vào|qua|to|khỏi|from)\s+(?:playlist|danh sách).*$/i, "")
+    .replace(/\s+(thể loại gì|thể loại nào|thuộc thể loại|thuộc loại|dài bao lâu|thời lượng|bao lâu|mấy phút|mấy giây|như thế nào|khi nào|năm nào|năm mấy|năm bao nhiêu|ra đời khi nào|phát hành khi nào|có bao nhiêu bài|bao nhiêu bài|hát bởi ai|ai hát|ai sáng tác|tên gì|tên là gì)\s*.*$/i, "")
     .replace(/\s+(này|đang phát|hiện tại|nhé|nha|đi)$/i, "")
     .replace(/^(của|tên|tựa|tự)\s+/i, "");
 }
@@ -58,37 +195,6 @@ function extractArtistHint(msg) {
   // Chỉ coi là tên nghệ sĩ nếu chứa chữ cái (không phải từ hỏi thuần)
   if (/^(bao nhiêu|mấy|số|nhiều|tổng|how|many|what|tất cả|toàn)/i.test(cleaned)) return "";
   return cleaned.length > 40 ? cleaned.slice(0, 40) : cleaned;
-}
-
-// Xác định bài hát mục tiêu cho lyrics / thông tin
-async function resolveTargetSong(message, currentSong) {
-  const lower = message.toLowerCase();
-
-  // "bài này / bài đang phát / bài hát này"
-  if (/\b(bài|song)\s+(này|đang phát|hiện tại|đang nghe)\b/i.test(lower) || /(bài hát này|song này)/i.test(lower)) {
-    return currentSong
-      ? await prisma.song.findUnique({
-          where: { id: currentSong.id },
-          include: { lyric: { select: { instrumental: true } } },
-        })
-      : null;
-  }
-
-  const title = extractSongTitle(message);
-  if (title) {
-    const song = await prisma.song.findFirst({
-      where: { title: { contains: title, mode: "insensitive" } },
-      include: { lyric: { select: { instrumental: true } } },
-    });
-    if (song) return song;
-  }
-
-  return currentSong
-    ? await prisma.song.findUnique({
-        where: { id: currentSong.id },
-        include: { lyric: { select: { instrumental: true } } },
-      })
-    : null;
 }
 
 // Context thư viện cho LLM
@@ -130,6 +236,16 @@ async function buildLibraryContext(artist, currentSong) {
 }
 
 // Mô tả ngắn bộ lọc tìm kiếm (cho reply)
+const PURPOSE_LABELS = {
+  study: { vi: "học tập", en: "studying" },
+  focus: { vi: "tập trung", en: "focusing" },
+  sleep: { vi: "ngủ", en: "sleep" },
+  workout: { vi: "tập gym", en: "workout" },
+  party: { vi: "tiệc tùng", en: "party" },
+  night: { vi: "khuya", en: "late night" },
+  coding: { vi: "lập trình", en: "coding" },
+};
+
 function describeFilters(attrs, lang) {
   const parts = [];
   const genreLabel = GENRE_KEYWORDS.find((g) => g.keyword === attrs.genre?.toLowerCase());
@@ -138,10 +254,14 @@ function describeFilters(attrs, lang) {
   else if (attrs.genre) parts.push(attrs.genre);
   if (moodLabel) parts.push(lang === "vi" ? moodLabel.mood : moodLabel.mood);
   else if (attrs.mood) parts.push(attrs.mood);
+  if (attrs.purpose) {
+    const p = PURPOSE_LABELS[attrs.purpose.toLowerCase()];
+    if (p) parts.push(lang === "vi" ? p.vi : p.en);
+  }
   if (attrs.vocal === "instrumental") parts.push(lang === "vi" ? "không lời" : "instrumental");
   if (attrs.vocal === "vocals") parts.push(lang === "vi" ? "có lời hát" : "with vocals");
   if (attrs.energy) parts.push(lang === "vi" ? `năng lượng ${attrs.energy}` : `${attrs.energy} energy`);
-  return parts.filter(Boolean).join(" · ");
+  return [...new Set(parts.filter(Boolean))].join(" · ");
 }
 
 // Trả lời "không tìm thấy nghệ sĩ" kèm gợi ý gần đúng, TRÁNH lệch sang tổng thư viện
@@ -197,27 +317,650 @@ const chat = async (req, res) => {
       return respond(res, {
         lang,
         reply: t({
-          vi: "Mình có thể giúp bạn:\n🎧 Gợi ý bài hát theo nghệ sĩ / thể loại / tâm trạng\n🎤 Xem thông tin nghệ sĩ, số bài hát\n💿 Tra cứu album, năm phát hành\n📜 Xem lời bài hát\n🎚️ Điều khiển nhạc: \"tạm dừng\", \"bài tiếp theo\", \"tăng âm lượng\"\n\nHãy thử hỏi: \"Find some chill indie music for studying\" nhé!",
-          en: "I can help you:\n🎧 Suggest songs by artist / genre / mood\n🎤 Artist info and song counts\n💿 Album info and release years\n📜 Song lyrics\n🎚️ Control music: \"pause\", \"next song\", \"turn the volume up\"\n\nTry: \"Find some chill indie music for studying\"!",
+          vi: "Mình có thể giúp bạn:\n🎧 Gợi ý bài hát theo nghệ sĩ / thể loại / tâm trạng\n🎤 Xem thông tin nghệ sĩ, số bài hát, xuất xứ\n💿 Tra cứu album, năm phát hành\n📊 Hỏi thống kê: \"bài dài nhất\", \"thể loại phổ biến\", \"bài đang hot\"\n🔎 Thông tin chi tiết: \"thông tin bài Breathe\"\n💾 Tạo playlist: \"Tạo playlist nhạc chill 10 bài\"\n🎚️ Điều khiển nhạc: \"tạm dừng\", \"bài tiếp theo\", \"thêm vào hàng chờ\"\n\nHãy thử hỏi: \"Find some chill indie music for studying\" nhé!",
+          en: "I can help you:\n🎧 Suggest songs by artist / genre / mood\n🎤 Artist info, song counts and origin\n💿 Album info and release years\n📊 Ask for stats: \"longest song\", \"most popular genre\", \"trending now\"\n🔎 Track details: \"tell me about the song Breathe\"\n💾 Create playlists: \"Create a chill playlist with 10 songs\"\n🎚️ Control music: \"pause\", \"next song\", \"add to queue\"\n\nTry: \"Find some chill indie music for studying\"!",
         }),
       });
     }
 
-    // 3) PLaylist (coming soon)
-    if (/(tạo playlist|create playlist|make me a playlist|playlist cho)/i.test(lower)) {
-      return respond(res, {
-        lang,
-        reply: t({
-          vi: "Tính năng tạo playlist bằng AI đang được phát triển! 🚀\nTrong khi chờ, bạn có thể thử: \"Tìm nhạc chill indie cho việc học\" hoặc \"Gợi ý nhạc lofi\" nhé!",
-          en: "AI playlist creation is coming soon! 🚀\nMeanwhile, try: \"Find some chill indie music for studying\" or \"Suggest lofi music\"!",
-        }),
-      });
+    // 2b) Gợi ý nghệ sĩ theo thể loại (vd "Gợi ý các nghệ sĩ acoustic")
+    if (/(gợi ý|đề xuất|suggest|nổi bật).*(nghệ sĩ|artist)|(nghệ sĩ|artist).*(gợi ý|đề xuất|nổi bật)/i.test(lower)) {
+      const artistSuggestions = await tools.suggestArtistsByGenre(msg, 4);
+      if (artistSuggestions.length) {
+        const listText = artistSuggestions.map((a) => `• **${a.name}** (${a.songCount} bài)`).join("\n");
+        return respond(res, {
+          lang,
+          type: "artists",
+          reply: t({
+            vi: `Một số nghệ sĩ nổi bật trong thư viện:\n${listText}`,
+            en: `Notable artists in the library:\n${listText}`,
+          }),
+          songs: [],
+          artists: artistSuggestions.map((a) => ({ name: a.name, songCount: a.songCount, image: null })),
+        });
+      }
     }
+
+    // 3) Playlist từ chat (cần đăng nhập) — handler thật đặt sau khi tìm artist bên dưới
 
     // Tìm nghệ sĩ trong câu hỏi (cho các nhánh dùng artist)
     let artist = null;
     if (!/(album|đĩa nhạc)/i.test(lower)) {
       artist = await tools.findArtist(msg);
+    }
+
+    // 2c) Daily Mix / playlist thông minh (cần đăng nhập)
+    if (/(daily mix|mix hôm nay|mix cho (tôi|mình|em)|nhạc cho (tôi|mình|em) hôm nay|playlist thông minh|smart playlist|bài hay hôm nay)/i.test(lower)) {
+      const userId = getUserId(req);
+      if (!userId) {
+        return respond(res, {
+          lang,
+          reply: t({
+            vi: "Để tạo Daily Mix riêng, bạn cần **đăng nhập** trước nhé! 🔐",
+            en: "To create your personal Daily Mix you need to **log in** first! 🔐",
+          }),
+        });
+      }
+      const songs = await tools.buildDailyMix(userId, 15);
+      const dateStr = new Date().toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" });
+      const title = `Daily Mix ${dateStr}`;
+      let playlist = await prisma.playlist.findFirst({ where: { userId, title } });
+      if (playlist) {
+        await prisma.playlistSong.deleteMany({ where: { playlistId: playlist.id } });
+      } else {
+        playlist = await prisma.playlist.create({ data: { title, userId, isPublic: false } });
+      }
+      await prisma.playlistSong.createMany({
+        data: songs.map((s) => ({ playlistId: playlist.id, songId: s.id })),
+        skipDuplicates: true,
+      });
+      sessionStore.update(sessionKey, { lastResults: songs });
+      return respond(res, {
+        lang,
+        type: "songs",
+        action: "playlist_created",
+        reply: t({
+          vi: `Đã tạo **${title}** với **${songs.length} bài** chọn theo thói quen nghe của bạn! 🎧\nPlaylist đã xuất hiện ở sidebar.`,
+          en: `Created **${title}** with **${songs.length} tracks** picked from your listening habits! 🎧\nIt's in your sidebar.`,
+        }),
+        songs,
+        playlist: { id: playlist.id, title },
+      });
+    }
+
+    // 3a) Playlist từ chat
+    if (/(tạo playlist|create playlist|make me a playlist|make a playlist|make (a|an|me) .*playlist|playlist mới|thêm.*(vào|qua).*playlist|add to playlist|add .* to (a |an |my |the )?playlist|(bỏ|gỡ|xóa|remove).*(khỏi|from).*(playlist|danh sách)|(xóa|delete).*(playlist|danh sách)|(đổi tên|rename).*(playlist|danh sách))/i.test(lower)) {
+      const userId = getUserId(req);
+      if (!userId) {
+        return respond(res, {
+          lang,
+          reply: t({
+            vi: "Để tạo / thêm playlist, bạn cần **đăng nhập** trước nhé! 🔐 Sau khi đăng nhập, thử lại: \"Tạo playlist nhạc chill 10 bài\" hoặc \"Thêm bài Breathe vào playlist ChillMix\".",
+            en: "To create / edit playlists you need to **log in** first! 🔐 Once logged in, try: \"Create a chill playlist with 10 songs\".",
+          }),
+        });
+      }
+
+      // Bỏ bài hát khỏi playlist có sẵn
+      if (/(bỏ|gỡ|xóa|remove).*(khỏi|from).*(playlist|danh sách)/i.test(lower)) {
+        const plMatch = msg.match(/(?:playlist|danh sách)\s+["'“”]?([^"'“”?]+?)["'“”]?\s*(?:\?|$)/i);
+        const playlistName = plMatch
+          ? plMatch[1].replace(/\s*(?:nhé|nha|đi|giúp mình|giúp tôi|nhe)$/i, "").trim()
+          : "";
+        if (!playlistName) {
+          return respond(res, {
+            lang,
+            reply: t({
+              vi: "Bạn muốn bỏ bài khỏi playlist nào? Ví dụ: \"Bỏ bài Breathe khỏi playlist ChillMix\".",
+              en: "Which playlist should I remove the song from? e.g. \"Remove Breathe from my ChillMix playlist\".",
+            }),
+          });
+        }
+        const plTitle = playlistName.slice(0, 60);
+        const playlists = await prisma.playlist.findMany({
+          where: { userId, title: { contains: plTitle, mode: "insensitive" } },
+          take: 5,
+        });
+        const exact = playlists.find((p) => p.title.toLowerCase() === plTitle.toLowerCase()) || playlists[0];
+        if (!exact) {
+          return respond(res, {
+            lang,
+            reply: t({
+              vi: `Mình không tìm thấy playlist **${plTitle}** của bạn.`,
+              en: `I couldn't find playlist **${plTitle}**.`,
+            }),
+          });
+        }
+        const title = extractSongTitle(msg);
+        const song = title ? await tools.findSong(title) : null;
+        if (!song) {
+          return respond(res, {
+            lang,
+            reply: t({
+              vi: "Mình chưa tìm được bài hát đó trong thư viện. Bạn thử nói tên bài khác nhé!",
+              en: "I couldn't find that song. Try naming a different track!",
+            }),
+          });
+        }
+        await prisma.playlistSong.deleteMany({ where: { playlistId: exact.id, songId: song.id } });
+        return respond(res, {
+          lang,
+          action: "playlist_updated",
+          reply: fmt(t({
+            vi: "Đã bỏ **{title}** ra khỏi playlist **{pl}**! ✅",
+            en: "Removed **{title}** from playlist **{pl}**! ✅",
+          }), { title: song.title, pl: exact.title }),
+          playlist: { id: exact.id, title: exact.title },
+        });
+      }
+
+      // Đổi tên playlist
+      if (/(đổi tên|rename).*(playlist|danh sách)/i.test(lower)) {
+        const plMatch = msg.match(/(?:playlist|danh sách)\s+["'“”]?([^"'“”?]+?)["'“”]?\s*(?:\?|$)/i);
+        const playlistName = plMatch
+          ? plMatch[1]
+              .replace(/\s*(?:thành|thanh|to|tên mới|new name)\s+.*$/i, "")
+              .replace(/\s*(?:nhé|nha|đi|giúp mình|giúp tôi|nhe)$/i, "")
+              .trim()
+          : "";
+        if (!playlistName) {
+          return respond(res, {
+            lang,
+            reply: t({
+              vi: "Bạn muốn đổi tên playlist nào? Ví dụ: \"Đổi tên playlist ChillMix thành Chill Mix\".",
+              en: "Which playlist do you want to rename? e.g. \"Rename playlist ChillMix to Chill Mix\".",
+            }),
+          });
+        }
+        const plTitle = playlistName.slice(0, 60);
+        const playlists = await prisma.playlist.findMany({
+          where: { userId, title: { contains: plTitle, mode: "insensitive" } },
+          take: 5,
+        });
+        const exact = playlists.find((p) => p.title.toLowerCase() === plTitle.toLowerCase()) || playlists[0];
+        if (!exact) {
+          return respond(res, {
+            lang,
+            reply: t({
+              vi: `Mình không tìm thấy playlist **${plTitle}** của bạn.`,
+              en: `I couldn't find playlist **${plTitle}**.`,
+            }),
+          });
+        }
+        const newName = (msg.match(/(?:thành|thanh|to|tên mới|new name)\s+["'“”]?([^"'“”?,;]+?)["'“”]?\s*(?:\?|$)/i) || [])[1];
+        const newTitle = newName
+          ? newName.replace(/\s*(?:nhé|nha|đi|giúp mình|giúp tôi|nhe)$/i, "").trim().slice(0, 50)
+          : "";
+        if (!newTitle) {
+          return respond(res, {
+            lang,
+            reply: t({
+              vi: "Bạn muốn đổi tên mới là gì? Ví dụ: \"Đổi tên playlist ChillMix thành Chill Mix\".",
+              en: "What should the new name be? e.g. \"Rename playlist ChillMix to Chill Mix\".",
+            }),
+          });
+        }
+        await prisma.playlist.update({ where: { id: exact.id }, data: { title: newTitle } });
+        return respond(res, {
+          lang,
+          action: "playlist_updated",
+          reply: fmt(t({
+            vi: "Đã đổi tên playlist **{old}** thành **{new}**! ✅",
+            en: "Renamed playlist **{old}** to **{new}**! ✅",
+          }), { old: exact.title, new: newTitle }),
+          playlist: { id: exact.id, title: newTitle },
+        });
+      }
+
+      // Xóa playlist
+      if (/(xóa|delete|remove).*(playlist|danh sách)/i.test(lower)) {
+        const plMatch = msg.match(/(?:playlist|danh sách)\s+["'“”]?([^"'“”?]+?)["'“”]?\s*(?:\?|$)/i);
+        const playlistName = plMatch
+          ? plMatch[1].replace(/\s*(?:nhé|nha|đi|giúp mình|giúp tôi|nhe)$/i, "").trim()
+          : "";
+        if (!playlistName) {
+          return respond(res, {
+            lang,
+            reply: t({
+              vi: "Bạn muốn xóa playlist nào? Ví dụ: \"Xóa playlist ChillMix\".",
+              en: "Which playlist do you want to delete? e.g. \"Delete playlist ChillMix\".",
+            }),
+          });
+        }
+        const plTitle = playlistName.slice(0, 60);
+        const playlists = await prisma.playlist.findMany({
+          where: { userId, title: { contains: plTitle, mode: "insensitive" } },
+          take: 5,
+        });
+        const exact = playlists.find((p) => p.title.toLowerCase() === plTitle.toLowerCase()) || playlists[0];
+        if (!exact) {
+          return respond(res, {
+            lang,
+            reply: t({
+              vi: `Mình không tìm thấy playlist **${plTitle}** của bạn.`,
+              en: `I couldn't find playlist **${plTitle}**.`,
+            }),
+          });
+        }
+        await prisma.playlist.delete({ where: { id: exact.id } });
+        return respond(res, {
+          lang,
+          action: "playlist_deleted",
+          reply: fmt(t({
+            vi: "Đã xóa playlist **{pl}**! 🗑️",
+            en: "Deleted playlist **{pl}**! 🗑️",
+          }), { pl: exact.title }),
+        });
+      }
+
+      // Thêm bài hát vào playlist có sẵn
+      if (/(thêm.*(vào|qua).*playlist|add to playlist|add .* to (a |an |my |the )?playlist)/i.test(lower)) {
+        const plMatch = msg.match(/(?:playlist|danh sách)\s+["'“”]?([^"'“”?]+?)["'”]?\s*(?:\?|$)/i);
+        const playlistName = plMatch
+          ? plMatch[1].replace(/\s*(?:nhé|nha|đi|giúp mình|giúp tôi|nhe)$/i, "").trim()
+          : "";
+        if (!playlistName) {
+          return respond(res, {
+            lang,
+            reply: t({
+              vi: "Bạn muốn thêm bài vào playlist nào? Ví dụ: \"Thêm bài Breathe vào playlist ChillMix\".",
+              en: "Which playlist should I add the song to? e.g. \"Add Breathe to my ChillMix playlist\".",
+            }),
+          });
+        }
+        const plTitle = playlistName.slice(0, 60);
+        const playlists = await prisma.playlist.findMany({
+          where: { userId, title: { contains: plTitle, mode: "insensitive" } },
+          take: 5,
+        });
+        const exact = playlists.find((p) => p.title.toLowerCase() === plTitle.toLowerCase()) || playlists[0];
+        if (!exact) {
+          return respond(res, {
+            lang,
+            reply: t({
+              vi: `Mình không tìm thấy playlist **${plTitle}** của bạn. Thử "Tạo playlist ${plTitle}" để tạo mới nhé!`,
+              en: `I couldn't find playlist **${plTitle}**. Try "Create playlist ${plTitle}" to make one!`,
+            }),
+          });
+        }
+        const title = extractSongTitle(msg);
+        let song = title ? await tools.findSong(title) : null;
+        if (!song && currentSong && /(bài này|bài đang phát|bài hát này|current)/i.test(lower)) song = currentSong;
+        if (!song) {
+          return respond(res, {
+            lang,
+            reply: t({
+              vi: "Mình chưa tìm được bài hát đó trong thư viện. Bạn thử nói tên bài khác nhé!",
+              en: "I couldn't find that song in the library. Try naming a different track!",
+            }),
+          });
+        }
+        const exists = await prisma.playlistSong.findUnique({
+          where: { playlistId_songId: { playlistId: exact.id, songId: song.id } },
+        });
+        if (exists) {
+          return respond(res, {
+            lang,
+            reply: fmt(t({
+              vi: "Bài **{title}** đã có trong playlist **{pl}** rồi! ✅",
+              en: "**{title}** is already in playlist **{pl}**! ✅",
+            }), { title: song.title, pl: exact.title }),
+          });
+        }
+        await prisma.playlistSong.create({ data: { playlistId: exact.id, songId: song.id } });
+        return respond(res, {
+          lang,
+          action: "playlist_updated",
+          reply: fmt(t({
+            vi: "Đã thêm **{title}** của **{artist}** vào playlist **{pl}**! 🎵\nPlaylist đã được cập nhật ở sidebar.",
+            en: "Added **{title}** by **{artist}** to playlist **{pl}**! 🎵\nYour playlist has been updated in the sidebar.",
+          }), { title: song.title, artist: song.artist, pl: exact.title }),
+          playlist: { id: exact.id, title: exact.title },
+        });
+      }
+
+      // Tạo playlist mới
+      const countMatch = msg.match(/(\d{1,3})\s*(?:bài|bai|song|tracks?)/i);
+      const wantCount = countMatch ? Math.min(Math.max(parseInt(countMatch[1], 10), 1), 30) : 10;
+
+      const titleMatch = msg.match(/(?:tên|tựa|ten|named|called)\s+["'“”]?([^"'“”,;?]+?)["'”]?\s*(?:\?|$)/i);
+      let playlistTitle = titleMatch ? titleMatch[1].replace(/\s*(?:nhé|nha|đi|giúp mình|giúp tôi|nhe)$/i, "").trim().slice(0, 50) : "";
+
+const desc = msg
+        .replace(/^(vui lòng|please\s+|làm ơn\s+)/i, "")
+        .replace(/(tạo playlist|create playlist|make me a playlist|make (a|an)\s+|playlist mới)\s*/i, "")
+        .replace(/\s*playlist\s*/i, " ")
+        .replace(/tên\s+["'“”]?[^"'“”,;]+["'“”]?\s*/i, "")
+        .trim();
+      const descAttrs = extractMusicAttrs(desc.toLowerCase());
+
+      if (!playlistTitle) {
+        const genreKw = GENRE_KEYWORDS.find((g) => lower.includes(g.keyword));
+        const base = genreKw ? genreKw.label : desc.split(/\s+/).slice(0, 2).join(" ") || "ChillMix";
+        const existing = await prisma.playlist.count({ where: { userId, title: { startsWith: base } } });
+        playlistTitle = existing > 0 ? `${base} #${existing + 1}` : base;
+      }
+
+      let songs = [];
+      if (descAttrs.genre || descAttrs.mood || descAttrs.purpose || descAttrs.energy || descAttrs.vocal) {
+        const result = await tools.searchMusic(descAttrs, wantCount);
+        songs = result.songs;
+      }
+      if (!songs.length) {
+        const fb = await tools.suggestSongs(desc, artist);
+        songs = fb.songs.slice(0, wantCount);
+      }
+      if (!songs.length) {
+        return respond(res, {
+          lang,
+          reply: t({
+            vi: "Mình chưa tìm được bài hát nào phù hợp để tạo playlist. Bạn thử mô tả lại nhé!",
+            en: "I couldn't find songs to build the playlist. Try describing again!",
+          }),
+        });
+      }
+
+      const playlist = await prisma.playlist.create({
+        data: { title: playlistTitle, userId, isPublic: false },
+      });
+      await prisma.playlistSong.createMany({
+        data: songs.map((s) => ({ playlistId: playlist.id, songId: s.id })),
+        skipDuplicates: true,
+      });
+
+      sessionStore.update(sessionKey, { lastResults: songs });
+      return respond(res, {
+        lang,
+        type: "songs",
+        action: "playlist_created",
+        reply: fmt(t({
+          vi: "Đã tạo playlist **{title}** với **{n} bài**! 🎵\nPlaylist đã xuất hiện ở sidebar. Muốn nghe luôn không?",
+          en: "Created playlist **{title}** with **{n} tracks**! 🎵\nIt's in your sidebar. Want to play it now?",
+        }), { title: playlist.title, n: songs.length }),
+        songs,
+        playlist: { id: playlist.id, title: playlist.title },
+      });
+    }
+
+
+    // 3b) Cá nhân hóa (cần đăng nhập)
+    if (/(bài (của )?(mình|tôi|em|tao) (nghe|thích|yêu thích)|bài (mình|tôi|em|tao) đã (thích|yêu thích)|top bài (mình|tôi|em)|(nghe|thích) nhiều nhất|bài (đã )?thích|bài đã (thích|nghe)|my (top|liked|recent)|songs i (like|listen|played)|my favorites?|bài yêu thích|my most[- ]played|most[- ]played (song|songs|track|tracks|music|tunes)|my most[- ]listened|most[- ]listened|what (do )?(i|i'?ve) listen(ed)? to most)/i.test(lower)) {
+      const userId = getUserId(req);
+      if (!userId) {
+        return respond(res, {
+          lang,
+          reply: t({
+            vi: "Để xem thông tin cá nhân (bài nghe / bài thích), bạn cần **đăng nhập** trước nhé! 🔐",
+            en: "To see your personal stats (listening / liked songs) you need to **log in** first! 🔐",
+          }),
+        });
+      }
+      const wantLiked = /(bài (đã )?thích|bài (mình|tôi|em|tao)( đã)? (thích|yêu thích)|bài yêu thích|liked|favorites?|songs? i like|songs? (that )?i like)/i.test(lower);
+      const wantRecent = /(gần đây|recent)/i.test(lower);
+
+      if (wantLiked) {
+        const likes = await prisma.userSong.findMany({
+          where: { userId },
+          include: { song: true },
+          orderBy: { createdAt: "desc" },
+          take: 10,
+        });
+        if (!likes.length) {
+          return respond(res, {
+            lang,
+            reply: t({
+              vi: "Bạn chưa thích bài hát nào. Thử bấm nút ♥ trên bài hát rồi hỏi lại mình nhé!",
+              en: "You haven't liked any songs yet. Tap the ♥ on a track, then ask me again!",
+            }),
+          });
+        }
+        const songs = tools.normalizeSongs(likes.map((l) => l.song));
+        sessionStore.update(sessionKey, { lastResults: songs });
+        return respond(res, {
+          lang,
+          type: "songs",
+          reply: t({
+            vi: `Những bài hát bạn đã thích ❤️ (${songs.length} bài):`,
+            en: `Songs you've liked ❤️ (${songs.length} tracks):`,
+          }),
+          songs,
+        });
+      }
+
+      let songs = [];
+      if (wantRecent) {
+        const recent = await prisma.songListen.findMany({
+          where: { userId },
+          orderBy: { listenedAt: "desc" },
+          distinct: ["songId"],
+          take: 10,
+        });
+        if (recent.length) {
+          const byId = new Map(
+            (await prisma.song.findMany({ where: { id: { in: recent.map((r) => r.songId) } } })).map((s) => [s.id, s])
+          );
+          songs = tools.normalizeSongs(recent.map((r) => byId.get(r.songId)).filter(Boolean));
+        }
+      } else {
+        const top = await prisma.songListen.groupBy({
+          by: ["songId"],
+          where: { userId },
+          _count: { _all: true },
+          orderBy: { _count: { songId: "desc" } },
+          take: 10,
+        });
+        if (top.length) {
+          const byId = new Map(
+            (await prisma.song.findMany({ where: { id: { in: top.map((t) => t.songId) } } })).map((s) => [s.id, s])
+          );
+          songs = tools.normalizeSongs(top.map((t) => byId.get(t.songId)).filter(Boolean));
+        }
+      }
+
+      if (songs.length) {
+        sessionStore.update(sessionKey, { lastResults: songs });
+        const head = wantRecent
+          ? "Những bài hát bạn nghe gần đây"
+          : "Top bài hát bạn nghe nhiều nhất";
+        return respond(res, {
+          lang,
+          type: "songs",
+          reply: t({
+            vi: `${head} 🎵`,
+            en: wantRecent ? "Your recent listens 🎵" : "Your most-played tracks 🎵",
+          }),
+          songs,
+        });
+      }
+      return respond(res, {
+        lang,
+        reply: t({
+          vi: "Mình chưa có dữ liệu nghe nào của bạn. Hãy nghe vài bài rồi quay lại hỏi nhé! 🎧",
+          en: "I don't have any listening data for you yet. Play a few songs, then come back! 🎧",
+        }),
+      });
+    }
+
+    // 3c) Thống kê thư viện & xu hướng
+    const statsMatch =
+      /(bài (hát )?(nào )?(dài|ngắn|mới) nhất|thể loại phổ biến|nghệ sĩ (có )?nhiều bài nhất|album (có )?nhiều bài nhất|bao nhiêu nghệ sĩ|mấy nghệ sĩ|số nghệ sĩ|tổng số nghệ sĩ|how many artists|bao nhiêu album|mấy album|số album|tổng số album|how many albums|bài (đang )?hot|đang hot|thịnh hành|nghe nhiều nhất|top bài|top songs|trending|thống kê|tổng quan)/i.test(lower);
+    if (statsMatch) {
+      // Số nghệ sĩ trong thư viện
+      if (/(bao nhiêu nghệ sĩ|mấy nghệ sĩ|số nghệ sĩ|tổng số nghệ sĩ|how many artists)/i.test(lower)) {
+        const artistGroups = await prisma.song.groupBy({ by: ["artist"], where: { duplicateOf: null } });
+        return respond(res, {
+          lang,
+          reply: t({
+            vi: `Thư viện nhạc đang có **${artistGroups.length} nghệ sĩ** khác nhau. 🎤 Bạn muốn mình gợi ý nhạc của ai không?`,
+            en: `The library currently features **${artistGroups.length} different artists**. 🎤 Want me to suggest any of them?`,
+          }),
+        });
+      }
+      // Số album trong thư viện
+      if (/(bao nhiêu album|mấy album|số album|tổng số album|how many albums)/i.test(lower)) {
+        const albumCount = await prisma.album.count();
+        return respond(res, {
+          lang,
+          reply: t({
+            vi: `Thư viện hiện có **${albumCount} album**. 💿 Bạn muốn xem album nào không?`,
+            en: `The library currently has **${albumCount} albums**. 💿 Want to check any of them?`,
+          }),
+        });
+      }
+      // Bài hát dài nhất
+      if (/bài (hát )?(nào )?dài nhất/i.test(lower)) {
+        const song = await prisma.song.findFirst({ where: { duplicateOf: null }, orderBy: { duration: "desc" } });
+        if (song) {
+          return respond(res, {
+            lang,
+            type: "songs",
+            reply: fmt(t({
+              vi: "Bài hát **dài nhất** thư viện là **{title}** của **{artist}**, thời lượng **{dur}**. 🎧",
+              en: "The **longest** track in the library is **{title}** by **{artist}** at **{dur}**. 🎧",
+            }), { title: song.title, artist: song.artist, dur: fmtDuration(song.duration) }),
+            songs: [tools.normalizeSong(song)],
+          });
+        }
+      }
+      // Bài hát ngắn nhất
+      if (/bài (hát )?(nào )?ngắn nhất/i.test(lower)) {
+        const song = await prisma.song.findFirst({ where: { duplicateOf: null }, orderBy: { duration: "asc" } });
+        if (song) {
+          return respond(res, {
+            lang,
+            type: "songs",
+            reply: fmt(t({
+              vi: "Bài hát **ngắn nhất** thư viện là **{title}** của **{artist}**, thời lượng **{dur}**. 🎧",
+              en: "The **shortest** track in the library is **{title}** by **{artist}** at **{dur}**. 🎧",
+            }), { title: song.title, artist: song.artist, dur: fmtDuration(song.duration) }),
+            songs: [tools.normalizeSong(song)],
+          });
+        }
+      }
+      // Bài hát mới nhất
+      if (/bài (hát )?(nào )?mới nhất/i.test(lower)) {
+        const song = await prisma.song.findFirst({ where: { duplicateOf: null, releaseYear: { not: null } }, orderBy: { releaseYear: "desc" } });
+        if (song) {
+          return respond(res, {
+            lang,
+            type: "songs",
+            reply: fmt(t({
+              vi: "Bài hát **mới nhất** thư viện là **{title}** của **{artist}** (phát hành năm **{year}**). 🎧",
+              en: "The **newest** track in the library is **{title}** by **{artist}** (released in **{year}**). 🎧",
+            }), { title: song.title, artist: song.artist, year: song.releaseYear }),
+            songs: [tools.normalizeSong(song)],
+          });
+        }
+      }
+      // Thể loại phổ biến nhất
+      if (/thể loại phổ biến/i.test(lower)) {
+        const genreGroups = await prisma.song.groupBy({
+          by: ["genre"],
+          _count: { _all: true },
+          orderBy: { _count: { genre: "desc" } },
+          take: 5,
+        });
+        const genres = genreGroups.filter((g) => g.genre).map((g) => `• ${g.genre} (${g._count._all} bài)`);
+        if (genres.length) {
+          return respond(res, {
+            lang,
+            reply: t({
+              vi: `Các thể loại **phổ biến nhất** trong thư viện:\n${genres.join("\n")}\n\nBạn thích thể loại nào, mình gợi ý nhạc nhé! 🎵`,
+              en: `The most **popular genres** in the library:\n${genres.join("\n")}\n\nPick a genre and I'll suggest some music! 🎵`,
+            }),
+          });
+        }
+      }
+      // Nghệ sĩ có nhiều bài nhất
+      if (/nghệ sĩ (có )?nhiều bài nhất/i.test(lower)) {
+        const topArtists = await prisma.song.groupBy({
+          by: ["artist"],
+          where: { duplicateOf: null },
+          _count: { _all: true },
+          orderBy: { _count: { artist: "desc" } },
+          take: 5,
+        });
+        if (topArtists.length) {
+          const list = topArtists.map((a) => `• **${a.artist}** (${a._count._all} bài)`).join("\n");
+          return respond(res, {
+            lang,
+            reply: t({
+              vi: `Các nghệ sĩ **có nhiều bài nhất** trong thư viện:\n${list}\n\nMuốn nghe nhạc của ai không? 🎤`,
+              en: `Artists with the **most tracks** in the library:\n${list}\n\nWant to listen to any of them? 🎤`,
+            }),
+          });
+        }
+      }
+      // Album có nhiều bài nhất
+      if (/album (có )?nhiều bài nhất/i.test(lower)) {
+        const topAlbums = await prisma.album.findMany({
+          include: { _count: { select: { songs: true } } },
+          orderBy: { songs: { _count: "desc" } },
+          take: 5,
+        });
+        if (topAlbums.length) {
+          const list = topAlbums.map((a) => `• **${a.title}** của ${a.artist} (${a._count.songs} bài)`).join("\n");
+          return respond(res, {
+            lang,
+            reply: t({
+              vi: `Các album **nhiều bài nhất** trong thư viện:\n${list}\n\nMuốn mình phát thử album nào không? 💿`,
+              en: `Albums with the **most tracks** in the library:\n${list}\n\nWant me to play one of them? 💿`,
+            }),
+          });
+        }
+      }
+      // Bài đang hot / nghe nhiều nhất
+      if (/(đang hot|thịnh hành|nghe nhiều nhất|bài (đang )?hot|top bài|top songs|trending)/i.test(lower)) {
+        const topListens = await prisma.songListen.groupBy({
+          by: ["songId"],
+          _count: { _all: true },
+          orderBy: { _count: { songId: "desc" } },
+          take: 10,
+        });
+        if (topListens.length) {
+          const byId = new Map(
+            (await prisma.song.findMany({ where: { id: { in: topListens.map((t) => t.songId) } } })).map((s) => [s.id, s])
+          );
+          const ordered = topListens.map((t) => byId.get(t.songId)).filter(Boolean);
+          const songs = tools.normalizeSongs(ordered);
+          sessionStore.update(sessionKey, { lastResults: songs });
+          return respond(res, {
+            lang,
+            type: "songs",
+            reply: t({
+              vi: "Các bài hát **đang được nghe nhiều nhất** trong thư viện 🎵\nChọn một bài để nghe ngay nhé!",
+              en: "The most **listened-to** tracks in the library right now 🎵\nPick one to play!",
+            }),
+            songs,
+          });
+        }
+        const fb = await tools.suggestSongs(msg, null);
+        return respond(res, {
+          lang,
+          type: "songs",
+          reply: t({
+            vi: "Chưa có nhiều lượt nghe để xếp hạng, mình gợi ý vài bài nhé 🎵",
+            en: "Not enough listening data yet — here are some suggestions 🎵",
+          }),
+          songs: fb.songs,
+        });
+      }
+      // Thống kê tổng quan (chung chung: "thống kê", "tổng quan thư viện")
+      if (/(thống kê|tổng quan)/i.test(lower)) {
+        const [totalSongs, artistGroups, albumCount] = await Promise.all([
+          prisma.song.count({ where: { duplicateOf: null } }),
+          prisma.song.groupBy({ by: ["artist"], where: { duplicateOf: null } }),
+          prisma.album.count(),
+        ]);
+        return respond(res, {
+          lang,
+          reply: t({
+            vi: `📊 Thư viện JamWave hiện có:\n• **${totalSongs} bài hát**\n• **${artistGroups.length} nghệ sĩ**\n• **${albumCount} album**\n\nBạn muốn hỏi chi tiết hơn không? Ví dụ: "bài dài nhất", "thể loại phổ biến" hay "bài đang hot"?`,
+            en: `📊 The JamWave library currently has:\n• **${totalSongs} songs**\n• **${artistGroups.length} artists**\n• **${albumCount} albums**\n\nWant more details? Try "longest song", "popular genres" or "trending now"!`,
+          }),
+        });
+      }
+      // Thống kê tổng (bài / nhạc) -> đã được handler 4 xử lý phía dưới
     }
 
     // 4) Đếm số bài hát
@@ -310,107 +1053,6 @@ const chat = async (req, res) => {
       });
     }
 
-    // 6) Lyrics (lời bài hát + ý nghĩa)
-    if (/(lời bài|lyrics|ý nghĩa bài|nói về gì|nói gì|meaning|summarize|tóm tắt|kể về|about the song|nội dung bài)/i.test(lower)) {
-      const song = await resolveTargetSong(msg, currentSong);
-      const wantMeaning = /(nói về gì|nói gì|ý nghĩa|meaning|summarize|tóm tắt|kể về|about the song|nội dung bài)/i.test(lower);
-
-      if (!song) {
-        return respond(res, {
-          lang,
-          reply: t({
-            vi: "Bạn đang nghe bài nào vậy? Hãy nói tên bài hát hoặc phát một bài rồi hỏi \"lời bài hát này\" nhé!",
-            en: "Which song is it about? Tell me the song title, or start playing one and ask \"lyrics of this song\"!",
-          }),
-        });
-      }
-
-      const result = await tools.getLyricsForSong(song.id);
-      if (result.error === "not_found") {
-        return respond(res, { lang, reply: t({ vi: "Không tìm thấy bài hát này!", en: "Song not found!" }) });
-      }
-
-      if (result.instrumental) {
-        return respond(res, {
-          lang,
-          type: "lyrics",
-          reply: t({
-            vi: `Bài **${song.title}** của **${song.artist}** là nhạc không lời (instrumental) 🎶 Không có lời để hiển thị.`,
-            en: `**${song.title}** by **${song.artist}** is an instrumental track 🎶 No lyrics available.`,
-          }),
-          lyrics: {
-            songId: song.id,
-            title: song.title,
-            artist: song.artist,
-            plainLyrics: null,
-            synced: false,
-            instrumental: true,
-          },
-        });
-      }
-
-      const noLyrics = !result.plainLyrics && !result.syncedLyrics;
-      if (noLyrics) {
-        return respond(res, {
-          lang,
-          type: "lyrics",
-          reply: t({
-            vi: `Bài **${song.title}** của **${song.artist}** hiện chưa có lời trong thư viện LRCLIB. Bạn thử bài khác nhé!`,
-            en: `**${song.title}** by **${song.artist}** doesn't have lyrics available yet. Try another song!`,
-          }),
-          lyrics: {
-            songId: song.id,
-            title: song.title,
-            artist: song.artist,
-            plainLyrics: null,
-            synced: false,
-            instrumental: false,
-          },
-        });
-      }
-
-      // Yêu cầu hiểu ý nghĩa -> gọi LLM tóm tắt (không trích nguyên văn toàn bài)
-      let replyText;
-      if (wantMeaning) {
-        const lyricsSnippet = (result.plainLyrics || "").slice(0, 2500);
-        const llm = await askLLM([
-          {
-            role: "system",
-            content: `You are a music assistant. Summarize the MEANING/THEME of the given song lyrics in ${lang === "vi" ? "Vietnamese" : "English"}, briefly (3-6 sentences). Do NOT reproduce the lyrics verbatim; only summarize and interpret. If lyrics are unclear, be honest.`,
-          },
-          {
-            role: "user",
-            content: `Song: "${song.title}" by ${song.artist}.\n\nLyrics:\n${lyricsSnippet}`,
-          },
-        ], { temperature: 0.5 });
-        replyText = llm.ok
-          ? llm.text
-          : (llmErrorReply(llm, lang) || t({
-              vi: "Mình gặp sự cố khi phân tích ý nghĩa, nhưng đây là lời bài hát để bạn xem nhé!",
-              en: "I had trouble analyzing the meaning, but here are the lyrics!",
-            }));
-      } else {
-        replyText = t({
-          vi: `Đây là lời bài hát **${song.title}** của **${song.artist}** 🎤`,
-          en: `Here are the lyrics of **${song.title}** by **${song.artist}** 🎤`,
-        });
-      }
-
-      return respond(res, {
-        lang,
-        type: "lyrics",
-        reply: replyText,
-        lyrics: {
-          songId: song.id,
-          title: song.title,
-          artist: song.artist,
-          plainLyrics: result.plainLyrics || null,
-          synced: Boolean(result.syncedLyrics),
-          instrumental: false,
-        },
-      });
-    }
-
     // 7) Năm phát hành / thông tin bài hát cụ thể
     if (/(năm phát hành|năm ra mắt|phát hành năm|release|ra đời năm)/i.test(lower)) {
       const title = extractSongTitle(msg);
@@ -452,20 +1094,56 @@ const chat = async (req, res) => {
       }
     }
 
-    // 8) Album intelligence
+    // 7b) Thông tin chi tiết bài hát (thể loại, thời lượng, năm, nguồn)
+    if (/(thông tin chi tiết|thông tin.*(bài|bài hát)|chi tiết.*(bài|bài hát)|bài.*(thể loại gì|dài bao lâu|thời lượng|bao lâu|mấy phút)|about.*(song|track)|(song|track).*(details|genre|duration))/i.test(lower)) {
+      const title = extractSongTitle(msg);
+      if (title) {
+        const song = await tools.findSong(title);
+        if (song) {
+          const dur = fmtDuration(song.duration);
+          const year = song.releaseYear ? ` phát hành năm **${song.releaseYear}**` : " chưa rõ năm phát hành";
+          const genre = song.genre || "chưa rõ";
+          const src = song.source === "audius" ? "Audius" : "Jamendo";
+          const meta = song.mbid ? `\n• Mã định danh MusicBrainz: \`${song.mbid}\`` : "";
+          return respond(res, {
+            lang,
+            type: "songs",
+            reply: fmt(t({
+              vi: "Thông tin bài **{title}** của **{artist}**:\n• Thể loại: {genre}\n• Thời lượng: {dur}\n• Năm phát hành: {year}\n• Nguồn: {src}{meta}\n\nBạn muốn nghe thử không? 🎧",
+              en: "**{title}** by **{artist}**:\n• Genre: {genre}\n• Duration: {dur}\n• Released: {year}\n• Source: {src}{meta}\n\nWant to give it a listen? 🎧",
+            }), { title: song.title, artist: song.artist, genre, dur, year, src, meta }),
+            songs: [tools.normalizeSong(song)],
+          });
+        }
+      }
+    }
+
+// 8) Album intelligence
     if (/(album|đĩa nhạc)/i.test(lower)) {
-      const thisAlbum = /(album này|album đang phát|album hiện tại)/i.test(lower);
-      const nameMatch = msg.match(/album\s+["'“”]?\s*([^"'“”?]+?)\s*["'”]?\s*(?:\?|$)/i);
+      const thisAlbum = /(album này|album đang phát|album hiện tại|whole album|toàn bộ album)/i.test(lower);
+      const nameMatch = msg.match(/album\s+["'“”]?\s*([^"'“”?]+?)\s*["'“”]?\s*(?:\?|$)/i);
 
       let album = null;
-      if (thisAlbum && currentSong?.albumId) {
-        album = await tools.getAlbumById(currentSong.albumId);
+      if (thisAlbum) {
+        if (currentSong?.albumId) {
+          album = await tools.getAlbumById(currentSong.albumId);
+        }
+        if (!album) {
+          const last = (session?.lastResults || []).filter((s) => s.albumId);
+          if (last.length) {
+            const topId = Object.entries(
+              last.reduce((acc, s) => ((acc[s.albumId] = (acc[s.albumId] || 0) + 1), acc), {})
+            ).sort((a, b) => b[1] - a[1])[0][0];
+            album = await tools.getAlbumById(topId);
+          }
+        }
       } else if (nameMatch) {
         const albumName = nameMatch[1]
           .replace(/\s+(này|đang phát|hiện tại)$/i, "")
           .replace(/^(của|tên|tựa)\s+/i, "")
           .replace(/\s+(?:có|gồm)?\s*(?:bao nhiêu bài|mấy bài|năm nào|năm mấy|khi nào|ra mắt khi nào|phát hành khi nào|năm bao nhiêu|mấy năm|những bài nào|bài nào|gồm những|có những bài|danh sách bài|các bài|tracks?|list)\s*$/i, "")
           .replace(/\s+(có|gồm)\s*$/i, "")
+          .replace(/\s+(?:của|bởi|by)\s+[^"'“”,;?]+$/i, "")
           .trim();
         if (albumName && !/(này|đang phát)/i.test(albumName)) {
           album = await tools.findAlbum(albumName);
@@ -481,8 +1159,24 @@ const chat = async (req, res) => {
             ? `, các bài phát hành: ${years.join(", ")}`
             : "";
 
+        // Xếp toàn bộ album vào hàng chờ (không cắt nhạc đang phát)
+        if (/(queue|thêm|add).*(album)|album.*(queue|thêm|add)/i.test(lower)) {
+          sessionStore.update(sessionKey, { lastResults: songs });
+          return respond(res, {
+            lang,
+            type: "songs",
+            action: "append",
+            reply: t({
+              vi: `Đã thêm toàn bộ album **${album.title}** của **${album.artist}** vào hàng chờ! 🎶 (${songs.length} bài)`,
+              en: `Queued the full album **${album.title}** by **${album.artist}**! 🎶 (${songs.length} tracks)`,
+            }),
+            songs,
+          });
+        }
+
         // Phát cả album
         if (/(phát|mở|nghe|play).*(album)|album.*(phát|mở|nghe)/i.test(lower)) {
+          sessionStore.update(sessionKey, { lastResults: songs });
           return respond(res, {
             lang,
             type: "songs",
@@ -534,7 +1228,10 @@ const chat = async (req, res) => {
         : info.yearRange.length === 1
           ? `, hoạt động từ ${info.yearRange[0]}`
           : "";
+      const metaYearText = !info.yearRange.length && info.metaYearRange ? `, hoạt động giai đoạn ${info.metaYearRange}` : "";
       const genreText = info.genres.length ? `\nThể loại: ${info.genres.join(", ")}` : "";
+      const countryText = info.country ? `\nXuất xứ: ${info.country}` : "";
+      const aliasText = info.aliases?.length ? `\nTên gọi khác: ${info.aliases.slice(0, 3).join(", ")}` : "";
       const albumText = info.albums.length
         ? `\nAlbum tiêu biểu:\n${info.albums.map((a) => `• ${a.title}`).join("\n")}`
         : "";
@@ -542,9 +1239,18 @@ const chat = async (req, res) => {
         lang,
         type: "artists",
         reply: fmt(t({
-          vi: "**{name}**{year}, hiện có **{count} bài hát** trong thư viện.{genre}{albums}\n\nMình gợi ý vài bài ngay nhé! 🎧",
-          en: "**{name}**{year}, currently has **{count} songs** in the library.{genre}{albums}\n\nLet me suggest a few tracks! 🎧",
-        }), { name: info.name, year: yearText, count: info.songCount, genre: genreText, albums: albumText }),
+          vi: "**{name}**{year}{metaYear}, hiện có **{count} bài hát** trong thư viện.{genre}{country}{aliases}{albums}\n\nMình gợi ý vài bài ngay nhé! 🎧",
+          en: "**{name}**{year}{metaYear}, currently has **{count} songs** in the library.{genre}{country}{aliases}{albums}\n\nLet me suggest a few tracks! 🎧",
+        }), {
+          name: info.name,
+          year: yearText,
+          metaYear: metaYearText,
+          count: info.songCount,
+          genre: genreText,
+          country: countryText,
+          aliases: aliasText,
+          albums: albumText,
+        }),
         artists: [{
           name: info.name,
           songCount: info.songCount,
@@ -553,6 +1259,7 @@ const chat = async (req, res) => {
           genres: info.genres,
           sources: info.sources,
           albums: info.albums,
+          country: info.country ?? null,
         }],
         songs: info.topSongs,
       });
@@ -763,40 +1470,65 @@ const chat = async (req, res) => {
       }
     }
 
-    // 12c) Tìm nhạc theo mục đích / mô tả tự nhiên (rule-based, không cần LLM):
-    //      "tìm nhạc indie chill cho việc học", "find music for studying", "nhạc tập trung"
-    const purposeTrigger = /(tìm nhạc|tìm kiếm nhạc|tìm bài|tìm bản nhạc|nhạc.*cho|find (music|song|tracks?|nhạc)|music (for|to)|nhạc (cho|để)|cần nhạc|cho mình tìm)/i.test(lower);
-    if (purposeTrigger && !/(album|đĩa nhạc)/i.test(lower)) {
-      const findPurpose = (() => {
-        const map = [
-          { re: /(học|ôn thi|study|revise)/i, key: "study" },
-          { re: /(tập trung|focus|concentrat)/i, key: "focus" },
-          { re: /(ngủ|đi ngủ|sleep)/i, key: "sleep" },
-          { re: /(tập luyện|tập gym|gym|workout|chạy bộ|running)/i, key: "workout" },
-          { re: /(tiệc|party|club)/i, key: "party" },
-          { re: /(đêm khuya|khuya|night|thức khuya)/i, key: "night" },
-          { re: /(lập trình|code|coding|viết code)/i, key: "coding" },
-        ];
-        return map.find((m) => m.re.test(lower))?.key || null;
-      })();
-      const genre = GENRE_KEYWORDS.find((g) => lower.includes(g.keyword))?.keyword || null;
-      const mood = MOOD_MAP.find((m) => lower.includes(m.mood))?.mood || null;
-      const energy =
-        /(năng lượng cao|mạnh|upbeat|high energy|sôi động)/i.test(lower) ? "high"
-        : /(nhẹ nhàng|thư giãn|thả lỏng|chậm|low energy|calm)/i.test(lower) ? "low"
-        : null;
-      const vocal = /(không lời|nhạc không lời|instrumental|without vocals)/i.test(lower) ? "instrumental"
-        : /(có lời|with vocals)/i.test(lower) ? "vocals"
-        : null;
+    // 12d) Thêm bài vào hàng chờ (không cắt nhạc đang phát)
+    if (/(thêm.*(hàng chờ|hàng đợi|queue)|thêm.*phát|phát thêm|phát nối tiếp|nối tiếp|add to queue|phát sau bài này|^queue\b|queue (more like|similar|it|this|them))/i.test(lower)) {
+      const stripped = msg
+        .replace(/^(vui lòng|please\s+|làm ơn\s+)/i, "")
+        .replace(/\s*(?:vào|to)\s+(?:hàng chờ|hàng đợi|queue)\s*/i, " ")
+        .replace(/^(?:queue|thêm|add)\s+/i, "")
+        .replace(/^(?:nhạc|music|phát)?\s*(?:giống|như|like|similar to)\s+/i, "")
+        .trim();
+      const wantTitle = extractSongTitle(msg) || (stripped.length >= 3 && !/(ngẫu nhiên|random)/i.test(stripped) ? stripped : "");
+      let songs = [];
+      if (wantTitle) {
+        const song = await tools.findSong(wantTitle);
+        if (song) {
+          songs = [song, ...(await tools.getRelatedSongs(song))];
+        } else {
+          songs = artist ? (await tools.suggestSongs(wantTitle, artist)).songs : [];
+        }
+      } else if (currentSong) {
+        songs = await tools.getRelatedSongs(currentSong);
+      } else {
+        songs = await tools.getRandomSongs(5);
+      }
+      if (!songs.length) {
+        return respond(res, {
+          lang,
+          reply: t({
+            vi: "Mình không tìm được bài nào để thêm vào hàng chờ. Bạn thử gọi tên bài khác nhé!",
+            en: "I couldn't find tracks to queue up. Try naming a different song!",
+          }),
+        });
+      }
+      const normSongs = tools.normalizeSongs(songs);
+      sessionStore.update(sessionKey, { lastResults: normSongs });
+      return respond(res, {
+        lang,
+        type: "songs",
+        action: "append",
+        reply: fmt(t({
+          vi: "Đã thêm **{n} bài** vào hàng chờ — nhạc đang phát không bị ảnh hưởng 🎶",
+          en: "Added **{n} tracks** to the queue — current music keeps playing 🎶",
+        }), { n: normSongs.length }),
+        songs: normSongs,
+      });
+    }
 
-      if (genre || mood || findPurpose || energy || vocal) {
-        const result = await tools.searchMusic(
-          { genre, mood, energy, vocal, purpose: findPurpose },
-          10
-        );
-        if (result.songs.length) {
+    // 12c) Tìm nhạc theo mục đích / mô tả tự nhiên (rule-based, không cần LLM):
+    //      "tìm nhạc indie chill cho việc học", "find music for studying", "nhạc sôi động tập gym"
+    const hasMusicWord = /(nhạc|music|nhac)/i.test(lower);
+    const descAttrs = extractMusicAttrs(lower);
+    if (
+      hasMusicWord &&
+      !/(album|đĩa nhạc)/i.test(lower) &&
+      (descAttrs.genre || descAttrs.mood || descAttrs.purpose || descAttrs.energy || descAttrs.vocal)
+    ) {
+      const attrs = descAttrs;
+      const result = await tools.searchMusic(attrs, 10);
+      if (result.songs.length) {
           sessionStore.update(sessionKey, { lastResults: result.songs });
-          const desc = describeFilters({ genre, mood, purpose: findPurpose, energy, vocal }, lang);
+          const desc = describeFilters(attrs, lang);
           return respond(res, {
             lang,
             type: "songs",
@@ -810,7 +1542,6 @@ const chat = async (req, res) => {
             }),
             songs: result.songs,
           });
-        }
       }
     }
 
@@ -906,6 +1637,24 @@ const chat = async (req, res) => {
 
       // ---- play_music ----
       if (intent === "play_music") {
+        if (attrs.album) {
+          const album = await tools.findAlbum(attrs.album);
+          if (album) {
+            const songs = tools.normalizeSongs(album.songs);
+            sessionStore.update(sessionKey, { lastResults: songs });
+            return respond(res, {
+              lang,
+              type: "songs",
+              action: "play",
+              reply: fmt(t({
+                vi: "Đang phát toàn bộ album **{title}** của **{artist}** cho bạn nghe! 🎶 ({n} bài)",
+                en: "Playing the full album **{title}** by **{artist}** for you! 🎶 ({n} tracks)",
+              }), { title: album.title, artist: album.artist, n: songs.length }),
+              songs,
+            });
+          }
+        }
+
         if (attrs.songTitle) {
           const song = await tools.findSong(attrs.songTitle);
           if (song) {
@@ -989,14 +1738,25 @@ const chat = async (req, res) => {
               : info.yearRange.length === 1
                 ? `, hoạt động từ ${info.yearRange[0]}`
                 : "";
+            const metaYearText = !info.yearRange.length && info.metaYearRange ? `, hoạt động giai đoạn ${info.metaYearRange}` : "";
             const genreText = info.genres.length ? `\nThể loại: ${info.genres.join(", ")}` : "";
+            const countryText = info.country ? `\nXuất xứ: ${info.country}` : "";
+            const aliasText = info.aliases?.length ? `\nTên gọi khác: ${info.aliases.slice(0, 3).join(", ")}` : "";
             return respond(res, {
               lang,
               type: "artists",
               reply: fmt(t({
-                vi: "**{name}**{year}, hiện có **{count} bài hát** trong thư viện.{genre}\n\nMình gợi ý vài bài ngay nhé! 🎧",
-                en: "**{name}**{year}, currently has **{count} songs** in the library.{genre}\n\nLet me suggest a few tracks! 🎧",
-              }), { name: info.name, year: yearText, count: info.songCount, genre: genreText }),
+                vi: "**{name}**{year}{metaYear}, hiện có **{count} bài hát** trong thư viện.{genre}{country}{aliases}\n\nMình gợi ý vài bài ngay nhé! 🎧",
+                en: "**{name}**{year}{metaYear}, currently has **{count} songs** in the library.{genre}{country}{aliases}\n\nLet me suggest a few tracks! 🎧",
+              }), {
+                name: info.name,
+                year: yearText,
+                metaYear: metaYearText,
+                count: info.songCount,
+                genre: genreText,
+                country: countryText,
+                aliases: aliasText,
+              }),
               artists: [{
                 name: info.name,
                 songCount: info.songCount,
@@ -1005,6 +1765,7 @@ const chat = async (req, res) => {
                 genres: info.genres,
                 sources: info.sources,
                 albums: info.albums,
+                country: info.country ?? null,
               }],
               songs: info.topSongs,
             });
@@ -1046,68 +1807,6 @@ const chat = async (req, res) => {
             songs,
           });
         }
-      }
-
-      // ---- lyrics (LLM nhận diện) ----
-      if (intent === "lyrics") {
-        const song = attrs.songTitle
-          ? await prisma.song.findFirst({
-              where: { title: { contains: attrs.songTitle, mode: "insensitive" } },
-              include: { lyric: { select: { instrumental: true } } },
-            })
-          : await resolveTargetSong(msg, currentSong);
-
-        if (!song) {
-          return respond(res, {
-            lang,
-            reply: t({
-              vi: "Bạn muốn xem lời bài hát nào? Hãy nói tên bài hát hoặc phát một bài rồi hỏi \"lời bài hát này\" nhé!",
-              en: "Which song's lyrics do you want? Tell me the title or play one and ask \"lyrics of this song\"!",
-            }),
-          });
-        }
-
-        const result = await tools.getLyricsForSong(song.id);
-        if (result.error === "not_found" || (!result.plainLyrics && !result.syncedLyrics && !result.instrumental)) {
-          return respond(res, {
-            lang,
-            type: "lyrics",
-            reply: t({
-              vi: `Bài **${song.title}** hiện chưa có lời trong thư viện LRCLIB. Bạn thử bài khác nhé!`,
-              en: `**${song.title}** doesn't have lyrics available yet. Try another song!`,
-            }),
-            lyrics: { songId: song.id, title: song.title, artist: song.artist, plainLyrics: null, synced: false, instrumental: result.instrumental },
-          });
-        }
-
-        if (result.instrumental) {
-          return respond(res, {
-            lang,
-            type: "lyrics",
-            reply: t({
-              vi: `Bài **${song.title}** là nhạc không lời (instrumental) 🎶`,
-              en: `**${song.title}** is an instrumental track 🎶`,
-            }),
-            lyrics: { songId: song.id, title: song.title, artist: song.artist, plainLyrics: null, synced: false, instrumental: true },
-          });
-        }
-
-        return respond(res, {
-          lang,
-          type: "lyrics",
-          reply: t({
-            vi: `Đây là lời bài hát **${song.title}** của **${song.artist}** 🎤`,
-            en: `Here are the lyrics of **${song.title}** by **${song.artist}** 🎤`,
-          }),
-          lyrics: {
-            songId: song.id,
-            title: song.title,
-            artist: song.artist,
-            plainLyrics: result.plainLyrics || null,
-            synced: Boolean(result.syncedLyrics),
-            instrumental: false,
-          },
-        });
       }
 
       // ---- chat: LLM tự do ----
@@ -1160,4 +1859,10 @@ STRICT RULES:
   }
 };
 
-module.exports = { chat };
+// Phiên bản streaming: giữ nguyên logic chat, chỉ chuyển respond sang SSE
+const chatStream = async (req, res) => {
+  res.locals.sse = true;
+  return chat(req, res);
+};
+
+module.exports = { chat, chatStream };

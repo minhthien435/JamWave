@@ -14,7 +14,6 @@ const aiRoutes = require('./routes/ai');
 const listenRoutes = require('./routes/listens');
 const adminRoutes = require('./routes/admin');
 const profileRoutes = require('./routes/profile');
-const lyricRoutes = require('./routes/lyrics');
 const wrappedRoutes = require('./routes/wrapped');
 const { generalLimiter } = require('./middlewares/rateLimit');
 
@@ -73,7 +72,6 @@ app.use('/api/ai', aiRoutes);
 app.use('/api/listens', listenRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/profile', profileRoutes);
-app.use('/api/lyrics', lyricRoutes);
 app.use('/api', wrappedRoutes);
 
 // Error handler tập trung (Express 5 tự chuyển lỗi async vào đây)

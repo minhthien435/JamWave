@@ -1,5 +1,16 @@
 import { useEffect, useState } from "react";
-import { Users, Music, Disc3, ListMusic, Headphones, Heart, Loader2, Shield, Trash2, Search } from "lucide-react";
+import {
+  ShieldCheck,
+  Users,
+  MusicNotes,
+  Disc,
+  Queue,
+  Headphones,
+  Heart,
+  Trash,
+  MagnifyingGlass,
+  SpinnerGap,
+} from "@phosphor-icons/react";
 import {
   fetchAdminStats,
   fetchAdminUsers,
@@ -10,13 +21,13 @@ import {
 } from "../api/admin";
 import { useToast } from "../components/ToastContext";
 
-const StatCard = ({ icon: Icon, label, value, color }) => (
-  <div className="glass-card p-5 rounded-2xl border border-white/10">
-    <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${color} flex items-center justify-center text-white mb-3 shadow-lg`}>
-      <Icon size={18} />
+const StatCard = ({ icon: Icon, label, value }) => (
+  <div className="glass-card p-4 rounded-2xl border border-white/10">
+    <div className="w-9 h-9 rounded-xl bg-violet-600/20 text-violet-400 flex items-center justify-center mb-2.5 border border-violet-500/20">
+      <Icon size={18} weight="duotone" />
     </div>
-    <p className="text-3xl font-black text-white">{value}</p>
-    <p className="text-xs text-zinc-400 font-semibold mt-1">{label}</p>
+    <p className="text-2xl sm:text-3xl font-black text-white tabular-nums">{value}</p>
+    <p className="text-xs text-zinc-400 font-medium mt-0.5">{label}</p>
   </div>
 );
 
@@ -105,8 +116,8 @@ export default function AdminPage() {
   return (
     <div className="space-y-6 pb-6 select-none">
       <div className="flex items-center gap-3">
-        <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-amber-500 to-red-600 flex items-center justify-center text-white shadow-lg shadow-amber-500/25">
-          <Shield size={20} />
+        <div className="w-11 h-11 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center justify-center shadow-md">
+          <ShieldCheck size={24} weight="bold" />
         </div>
         <div>
           <h1 className="text-2xl font-black tracking-tight text-white">Trung tâm quản trị</h1>
@@ -115,13 +126,13 @@ export default function AdminPage() {
       </div>
 
       {/* Thống kê */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-        <StatCard icon={Users} label="Người dùng" value={stats?.users ?? "..."} color="from-cyan-500 to-blue-600" />
-        <StatCard icon={Music} label="Bài hát" value={stats?.songs ?? "..."} color="from-violet-500 to-purple-600" />
-        <StatCard icon={Disc3} label="Album" value={stats?.albums ?? "..."} color="from-fuchsia-500 to-pink-600" />
-        <StatCard icon={ListMusic} label="Playlist" value={stats?.playlists ?? "..."} color="from-emerald-500 to-teal-600" />
-        <StatCard icon={Headphones} label="Lượt nghe" value={stats?.listens ?? "..."} color="from-amber-500 to-orange-600" />
-        <StatCard icon={Heart} label="Lượt follow" value={stats?.follows ?? "..."} color="from-rose-500 to-red-600" />
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
+        <StatCard icon={Users} label="Người dùng" value={stats?.users ?? "..."} />
+        <StatCard icon={MusicNotes} label="Bài hát" value={stats?.songs ?? "..."} />
+        <StatCard icon={Disc} label="Album" value={stats?.albums ?? "..."} />
+        <StatCard icon={Queue} label="Playlist" value={stats?.playlists ?? "..."} />
+        <StatCard icon={Headphones} label="Lượt nghe" value={stats?.listens ?? "..."} />
+        <StatCard icon={Heart} label="Lượt follow" value={stats?.follows ?? "..."} />
       </div>
 
       {/* Tabs */}
@@ -133,9 +144,9 @@ export default function AdminPage() {
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`px-5 py-2.5 rounded-full text-xs font-bold transition-all ${
+            className={`px-5 py-2 rounded-full text-xs font-semibold transition-all ${
               tab === t.key
-                ? "bg-gradient-to-r from-violet-600 to-cyan-500 text-white shadow-lg shadow-violet-500/25"
+                ? "bg-violet-600 text-white shadow-sm"
                 : "bg-white/5 text-zinc-400 hover:text-white border border-white/10"
             }`}
           >
@@ -146,10 +157,10 @@ export default function AdminPage() {
 
       {/* Tab người dùng */}
       {tab === "users" && (
-        <div className="glass-panel rounded-2xl border border-white/10 overflow-hidden">
+        <div className="glass-card rounded-2xl border border-white/10 overflow-hidden">
           <div className="flex items-center gap-3 p-4 border-b border-white/10 bg-white/5">
             <div className="relative flex-1 max-w-xs">
-              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+              <MagnifyingGlass size={15} weight="bold" className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
               <input
                 value={userQuery}
                 onChange={(e) => {
@@ -157,10 +168,10 @@ export default function AdminPage() {
                   setUserPage(1);
                 }}
                 placeholder="Tìm email hoặc tên..."
-                className="w-full bg-white/5 border border-white/10 text-white text-sm pl-9 pr-3 py-2 rounded-xl outline-none focus:border-violet-500 placeholder-zinc-500"
+                className="w-full bg-[#14141c] border border-white/10 text-white text-xs pl-9 pr-3 py-2 rounded-xl outline-none focus:border-violet-500 placeholder-zinc-500"
               />
             </div>
-            <span className="text-xs text-zinc-400 font-semibold ml-auto">
+            <span className="text-xs text-zinc-400 font-medium tabular-nums ml-auto">
               {userTotal} người dùng
             </span>
           </div>
@@ -168,20 +179,20 @@ export default function AdminPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-[11px] uppercase tracking-wider text-zinc-500 border-b border-white/5">
-                  <th className="px-4 py-3 font-bold">Người dùng</th>
-                  <th className="px-4 py-3 font-bold">Vai trò</th>
-                  <th className="px-4 py-3 font-bold text-center">Playlist</th>
-                  <th className="px-4 py-3 font-bold text-center">Thích</th>
-                  <th className="px-4 py-3 font-bold text-center">Lượt nghe</th>
-                  <th className="px-4 py-3 font-bold text-right">Thao tác</th>
+                <tr className="text-left text-[11px] uppercase tracking-wider text-zinc-400 border-b border-white/5 bg-white/[0.02]">
+                  <th className="px-4 py-3 font-semibold">Người dùng</th>
+                  <th className="px-4 py-3 font-semibold">Vai trò</th>
+                  <th className="px-4 py-3 font-semibold text-center">Playlist</th>
+                  <th className="px-4 py-3 font-semibold text-center">Thích</th>
+                  <th className="px-4 py-3 font-semibold text-center">Lượt nghe</th>
+                  <th className="px-4 py-3 font-semibold text-right">Thao tác</th>
                 </tr>
               </thead>
               <tbody>
                 {userLoading ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-10 text-center text-emerald-400">
-                      <Loader2 size={24} className="animate-spin inline-block" />
+                    <td colSpan={6} className="px-4 py-10 text-center text-violet-400">
+                      <SpinnerGap size={24} className="animate-spin inline-block" />
                     </td>
                   </tr>
                 ) : users.length === 0 ? (
@@ -194,38 +205,38 @@ export default function AdminPage() {
                   users.map((u) => (
                     <tr key={u.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
                       <td className="px-4 py-3">
-                        <p className="font-bold text-white truncate max-w-[220px]">{u.name}</p>
-                        <p className="text-xs text-zinc-500 truncate max-w-[220px]">{u.email}</p>
+                        <p className="font-semibold text-white truncate max-w-[220px]">{u.name}</p>
+                        <p className="text-xs text-zinc-400 truncate max-w-[220px]">{u.email}</p>
                       </td>
                       <td className="px-4 py-3">
                         <span
-                          className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full ${
+                          className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
                             u.role === "ADMIN"
-                              ? "bg-amber-500/15 text-amber-300 border border-amber-400/30"
+                              ? "bg-amber-500/15 text-amber-300 border border-amber-500/30"
                               : "bg-white/5 text-zinc-400 border border-white/10"
                           }`}
                         >
                           {u.role}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-center text-zinc-300 font-semibold">{u.playlists}</td>
-                      <td className="px-4 py-3 text-center text-zinc-300 font-semibold">{u.likes}</td>
-                      <td className="px-4 py-3 text-center text-zinc-300 font-semibold">{u.listens}</td>
+                      <td className="px-4 py-3 text-center text-zinc-300 font-medium tabular-nums">{u.playlists}</td>
+                      <td className="px-4 py-3 text-center text-zinc-300 font-medium tabular-nums">{u.likes}</td>
+                      <td className="px-4 py-3 text-center text-zinc-300 font-medium tabular-nums">{u.listens}</td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={() => handleRoleChange(u)}
-                            className="text-[11px] font-bold px-3 py-1.5 rounded-full border border-white/15 bg-white/5 text-zinc-300 hover:text-white hover:bg-white/10 transition-all"
+                            className="text-[11px] font-semibold px-3 py-1 rounded-full border border-white/10 bg-white/5 text-zinc-300 hover:text-white hover:bg-white/10 transition-all"
                             title="Đổi vai trò"
                           >
                             {u.role === "ADMIN" ? "Hạ xuống USER" : "Lên ADMIN"}
                           </button>
                           <button
                             onClick={() => handleDeleteUser(u)}
-                            className="p-1.5 rounded-full text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition-all"
+                            className="p-1.5 rounded-full text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10 transition-all"
                             title="Xóa người dùng"
                           >
-                            <Trash2 size={15} />
+                            <Trash size={15} />
                           </button>
                         </div>
                       </td>
@@ -241,17 +252,17 @@ export default function AdminPage() {
               <button
                 onClick={() => setUserPage((p) => Math.max(1, p - 1))}
                 disabled={userPage <= 1}
-                className="text-xs font-bold px-4 py-2 rounded-full bg-white/5 border border-white/10 text-zinc-300 hover:text-white disabled:opacity-40"
+                className="text-xs font-semibold px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-zinc-300 hover:text-white disabled:opacity-40"
               >
                 Trước
               </button>
-              <span className="text-xs text-zinc-400 font-semibold">
+              <span className="text-xs text-zinc-400 font-medium tabular-nums">
                 Trang {userPage} / {Math.ceil(userTotal / 20)}
               </span>
               <button
                 onClick={() => setUserPage((p) => p + 1)}
                 disabled={userPage * 20 >= userTotal}
-                className="text-xs font-bold px-4 py-2 rounded-full bg-white/5 border border-white/10 text-zinc-300 hover:text-white disabled:opacity-40"
+                className="text-xs font-semibold px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-zinc-300 hover:text-white disabled:opacity-40"
               >
                 Sau
               </button>
@@ -262,10 +273,10 @@ export default function AdminPage() {
 
       {/* Tab bài hát */}
       {tab === "songs" && (
-        <div className="glass-panel rounded-2xl border border-white/10 overflow-hidden">
+        <div className="glass-card rounded-2xl border border-white/10 overflow-hidden">
           <div className="flex items-center gap-3 p-4 border-b border-white/10 bg-white/5">
             <div className="relative flex-1 max-w-xs">
-              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+              <MagnifyingGlass size={15} weight="bold" className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
               <input
                 value={songQuery}
                 onChange={(e) => {
@@ -273,28 +284,28 @@ export default function AdminPage() {
                   setSongPage(1);
                 }}
                 placeholder="Tìm tên bài hoặc nghệ sĩ..."
-                className="w-full bg-white/5 border border-white/10 text-white text-sm pl-9 pr-3 py-2 rounded-xl outline-none focus:border-violet-500 placeholder-zinc-500"
+                className="w-full bg-[#14141c] border border-white/10 text-white text-xs pl-9 pr-3 py-2 rounded-xl outline-none focus:border-violet-500 placeholder-zinc-500"
               />
             </div>
-            <span className="text-xs text-zinc-400 font-semibold ml-auto">{songTotal} bài hát</span>
+            <span className="text-xs text-zinc-400 font-medium tabular-nums ml-auto">{songTotal} bài hát</span>
           </div>
 
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-[11px] uppercase tracking-wider text-zinc-500 border-b border-white/5">
-                  <th className="px-4 py-3 font-bold">Bài hát</th>
-                  <th className="px-4 py-3 font-bold">Nguồn</th>
-                  <th className="px-4 py-3 font-bold text-center">Lượt nghe</th>
-                  <th className="px-4 py-3 font-bold text-center">Thích</th>
-                  <th className="px-4 py-3 font-bold text-right">Thao tác</th>
+                <tr className="text-left text-[11px] uppercase tracking-wider text-zinc-400 border-b border-white/5 bg-white/[0.02]">
+                  <th className="px-4 py-3 font-semibold">Bài hát</th>
+                  <th className="px-4 py-3 font-semibold">Nguồn</th>
+                  <th className="px-4 py-3 font-semibold text-center">Lượt nghe</th>
+                  <th className="px-4 py-3 font-semibold text-center">Thích</th>
+                  <th className="px-4 py-3 font-semibold text-right">Thao tác</th>
                 </tr>
               </thead>
               <tbody>
                 {songLoading ? (
                   <tr>
-                    <td colSpan={5} className="px-4 py-10 text-center text-emerald-400">
-                      <Loader2 size={24} className="animate-spin inline-block" />
+                    <td colSpan={5} className="px-4 py-10 text-center text-violet-400">
+                      <SpinnerGap size={24} className="animate-spin inline-block" />
                     </td>
                   </tr>
                 ) : songs.length === 0 ? (
@@ -307,12 +318,12 @@ export default function AdminPage() {
                   songs.map((s) => (
                     <tr key={s.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
                       <td className="px-4 py-3">
-                        <p className="font-bold text-white truncate max-w-[280px]">{s.title}</p>
-                        <p className="text-xs text-zinc-500 truncate max-w-[280px]">{s.artist}</p>
+                        <p className="font-semibold text-white truncate max-w-[280px]">{s.title}</p>
+                        <p className="text-xs text-zinc-400 truncate max-w-[280px]">{s.artist}</p>
                       </td>
                       <td className="px-4 py-3">
                         <span
-                          className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full ${
+                          className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
                             s.source === "audius"
                               ? "bg-purple-500/15 text-purple-300 border border-purple-400/30"
                               : "bg-cyan-500/15 text-cyan-300 border border-cyan-400/30"
@@ -321,15 +332,15 @@ export default function AdminPage() {
                           {s.source}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-center text-zinc-300 font-semibold">{s.listenCount}</td>
-                      <td className="px-4 py-3 text-center text-zinc-300 font-semibold">{s.likeCount}</td>
+                      <td className="px-4 py-3 text-center text-zinc-300 font-medium tabular-nums">{s.listenCount}</td>
+                      <td className="px-4 py-3 text-center text-zinc-300 font-medium tabular-nums">{s.likeCount}</td>
                       <td className="px-4 py-3 text-right">
                         <button
                           onClick={() => handleDeleteSong(s)}
-                          className="p-1.5 rounded-full text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition-all"
+                          className="p-1.5 rounded-full text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10 transition-all"
                           title="Xóa bài hát"
                         >
-                          <Trash2 size={15} />
+                          <Trash size={15} />
                         </button>
                       </td>
                     </tr>
@@ -344,17 +355,17 @@ export default function AdminPage() {
               <button
                 onClick={() => setSongPage((p) => Math.max(1, p - 1))}
                 disabled={songPage <= 1}
-                className="text-xs font-bold px-4 py-2 rounded-full bg-white/5 border border-white/10 text-zinc-300 hover:text-white disabled:opacity-40"
+                className="text-xs font-semibold px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-zinc-300 hover:text-white disabled:opacity-40"
               >
                 Trước
               </button>
-              <span className="text-xs text-zinc-400 font-semibold">
+              <span className="text-xs text-zinc-400 font-medium tabular-nums">
                 Trang {songPage} / {Math.ceil(songTotal / 20)}
               </span>
               <button
                 onClick={() => setSongPage((p) => p + 1)}
                 disabled={songPage * 20 >= songTotal}
-                className="text-xs font-bold px-4 py-2 rounded-full bg-white/5 border border-white/10 text-zinc-300 hover:text-white disabled:opacity-40"
+                className="text-xs font-semibold px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-zinc-300 hover:text-white disabled:opacity-40"
               >
                 Sau
               </button>

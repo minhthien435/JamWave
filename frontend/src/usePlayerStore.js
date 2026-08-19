@@ -2,7 +2,7 @@ import { create } from "zustand";
 
 const STORAGE_KEY = "spotify_player_state";
 
-// Khôi phục trạng thái đã lưu (volume, bài đang phát, queue)
+// Khôi phục trạng thái đã lưu (volume, bài đang phát, queue, vị trí phát)
 const loadPersisted = () => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -12,6 +12,7 @@ const loadPersisted = () => {
       volume: typeof parsed.volume === "number" ? parsed.volume : 0.8,
       currentSong: parsed.currentSong || null,
       queue: Array.isArray(parsed.queue) ? parsed.queue : [],
+      resumeTime: typeof parsed.resumeTime === "number" ? parsed.resumeTime : 0,
     };
   } catch {
     return null;
@@ -25,11 +26,15 @@ export const usePlayerStore = create((set, get) => ({
   isPlaying: false,
   queue: persisted?.queue ?? [],
   volume: persisted?.volume ?? 0.8,
+  resumeTime: persisted?.resumeTime ?? 0,
   repeatMode: "off", // "off" | "all" | "one"
   shuffle: false,
 
-  // Set current song
-  setCurrentSong: (song) => set({ currentSong: song, isPlaying: true }),
+  // Set current song (đổi bài mới -> reset vị trí phát)
+  setCurrentSong: (song) => set({ currentSong: song, isPlaying: true, resumeTime: 0 }),
+
+  // Lưu vị trí phát hiện tại (PlayerBar gọi throttled)
+  setResumeTime: (time) => set({ resumeTime: time }),
 
   // Set song queue
   setQueue: (songs) => set({ queue: songs }),
@@ -121,9 +126,11 @@ usePlayerStore.subscribe((state) => {
         volume: state.volume,
         currentSong: state.currentSong,
         queue: state.queue,
+        resumeTime: state.resumeTime,
       })
     );
   } catch {
     // bỏ qua nếu localStorage đầy / không cho phép
   }
 });
+

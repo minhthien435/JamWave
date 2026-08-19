@@ -12,7 +12,7 @@ async function throttledRequest(path, params = {}) {
   const wait = MIN_INTERVAL_MS - (Date.now() - lastRequestAt);
   if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
 
-  for (let attempt = 1; attempt <= 3; attempt += 1) {
+  for (let attempt = 1; attempt <= 5; attempt += 1) {
     try {
       lastRequestAt = Date.now();
       const response = await axios.get(`${MB_BASE}${path}`, {
@@ -32,8 +32,9 @@ async function throttledRequest(path, params = {}) {
         await new Promise((resolve) => setTimeout(resolve, 1500 * attempt));
         continue;
       }
-      if (attempt === 3) throw error;
-      await new Promise((resolve) => setTimeout(resolve, 800 * attempt));
+      // Lỗi mạng (ETIMEDOUT/ENETUNREACH...) -> backoff tăng dần
+      if (attempt === 5) throw error;
+      await new Promise((resolve) => setTimeout(resolve, Math.min(16000, 2000 * attempt)));
     }
   }
   return null;
