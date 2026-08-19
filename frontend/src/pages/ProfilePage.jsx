@@ -23,6 +23,7 @@ import { fetchRecentListens } from "../api/listens";
 import { usePlayerStore } from "../usePlayerStore";
 import { useAuthStore } from "../useAuthStore";
 import { useToast } from "../components/ToastContext";
+import { resolveImageUrl } from "../utils/imageUrl";
 import SongTable from "../components/SongTable";
 
 const StatCard = ({ icon: Icon, label, value, colorStyle = "bg-[#B85C38]/15 text-[#D97C54] border-[#B85C38]/30" }) => (
@@ -146,7 +147,7 @@ export default function ProfilePage() {
           <div className="relative">
             <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-[#2E2721] text-[#EDE6D6] font-serif italic text-4xl flex items-center justify-center shadow-2xl border-2 border-[#EDE6D6]/20 flex-shrink-0 overflow-hidden">
               {data.user.avatarUrl ? (
-                <img src={data.user.avatarUrl} alt={data.user.name} className="w-full h-full object-cover" />
+                <img src={resolveImageUrl(data.user.avatarUrl)} alt={data.user.name} className="w-full h-full object-cover" />
               ) : (
                 avatarText
               )}

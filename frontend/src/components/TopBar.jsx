@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { CaretLeft, CaretRight, SignOut, User, ShieldCheck, Sparkle } from "@phosphor-icons/react";
 import { useAuthStore } from "../useAuthStore";
+import { resolveImageUrl } from "../utils/imageUrl";
 
 export default function TopBar() {
   const navigate = useNavigate();
@@ -62,7 +63,7 @@ export default function TopBar() {
               title={user.name}
             >
               {user.avatarUrl ? (
-                <img src={user.avatarUrl} alt={user.name} className="w-full h-full rounded-xl object-cover" />
+                <img src={resolveImageUrl(user.avatarUrl)} alt={user.name} className="w-full h-full rounded-xl object-cover" />
               ) : (
                 avatarText
               )}

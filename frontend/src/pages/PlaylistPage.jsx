@@ -32,6 +32,7 @@ import SongTable from "../components/SongTable";
 import SourceBadge from "../components/SourceBadge";
 import { useToast } from "../components/ToastContext";
 import { useDownloadStore } from "../useDownloadStore";
+import { resolveImageUrl } from "../utils/imageUrl";
 import {
   fetchPlaylist,
   fetchSharedPlaylist,
@@ -301,7 +302,7 @@ function PlaylistView({ id }) {
           <div className="w-36 h-36 sm:w-44 sm:h-44 bg-[#26211C] border border-[#EDE6D6]/20 rounded-xl flex items-center justify-center text-[#D97C54] shadow-xl flex-shrink-0 relative overflow-hidden">
             <div className="washi-tape absolute -top-2.5 left-1/2 -translate-x-1/2 w-12 h-3.5 rounded-sm rotate-2 z-10" />
             {playlist.coverImg ? (
-              <img src={playlist.coverImg} alt={playlist.title} className="absolute inset-0 w-full h-full object-cover" />
+              <img src={resolveImageUrl(playlist.coverImg)} alt={playlist.title} className="absolute inset-0 w-full h-full object-cover" />
             ) : (
               <MusicNotes size={56} weight="duotone" />
             )}

@@ -22,6 +22,7 @@ import { useAuthStore } from "../useAuthStore";
 import { useLibraryStore } from "../useLibraryStore";
 import { createPlaylist } from "../api/playlists";
 import { fetchLikedSongs } from "../api/likes";
+import { resolveImageUrl } from "../utils/imageUrl";
 
 export default function Sidebar() {
   const navigate = useNavigate();
@@ -231,7 +232,7 @@ export default function Sidebar() {
                       <div className="w-7 h-7 rounded-lg bg-[#2E2721] border border-[#EDE6D6]/15 flex items-center justify-center text-[#A39282] overflow-hidden flex-shrink-0">
                         {playlist.coverImg ? (
                           <img
-                            src={playlist.coverImg}
+                            src={resolveImageUrl(playlist.coverImg)}
                             alt={playlist.title}
                             className="w-full h-full object-cover"
                           />
