@@ -43,6 +43,6 @@ export const fetchRandomSongs = async (limit = 20) => {
 };
 
 // Tải bài hát về máy (proxy qua backend né CORS)
-export const downloadSong = async (songId, fallbackName = "bai-hat.mp3") => {
-  await downloadWithAuth(`${apiClient.defaults.baseURL}/songs/${songId}/download`, fallbackName);
+export const downloadSong = async (songId, fallbackName = "bai-hat.mp3", onProgress = null, signal = null) => {
+  return await downloadWithAuth(`${apiClient.defaults.baseURL}/songs/${songId}/download`, fallbackName, onProgress, signal);
 };

@@ -14,6 +14,7 @@ import { useAuthStore } from "../useAuthStore";
 import { useLikedSongs } from "../hooks/useLikedSongs";
 import { fetchRadio, downloadSong } from "../api/songs";
 import { useToast } from "./ToastContext";
+import { useDownloadStore } from "../useDownloadStore";
 import { useState } from "react";
 
 const formatDuration = (seconds) => {
@@ -72,10 +73,29 @@ export default function SongTable({ songs, onRemove, onUnlike, emptyText = "Chư
     e.stopPropagation();
     if (downloadingId) return;
     setDownloadingId(song.id);
+
+    const abortController = new AbortController();
+    useDownloadStore.getState().startDownload({
+      title: `${song.title} - ${song.artist}`,
+      type: "song",
+      abortController,
+    });
+
     try {
-      await downloadSong(song.id, `${song.title} - ${song.artist}.mp3`);
+      const filename = await downloadSong(
+        song.id,
+        `${song.title} - ${song.artist}.mp3`,
+        (progressData) => {
+          useDownloadStore.getState().updateProgress(progressData);
+        },
+        abortController.signal
+      );
+      useDownloadStore.getState().finishDownload(filename);
     } catch (err) {
-      toast?.error?.(err.message);
+      if (err.message !== "Đã hủy tải xuống") {
+        useDownloadStore.getState().failDownload(err.message);
+        toast?.error?.(err.message);
+      }
     } finally {
       setDownloadingId(null);
     }

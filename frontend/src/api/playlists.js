@@ -51,11 +51,15 @@ export const removeSongFromPlaylist = async (playlistId, songId) => {
 export const updatePlaylistCover = async (id, file) => {
   const formData = new FormData();
   formData.append("cover", file);
-  const response = await apiClient.post(`/playlists/${id}/cover`, formData);
+  const response = await apiClient.post(`/playlists/${id}/cover`, formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
   return response.data;
 };
 
 // Tải toàn bộ playlist dưới dạng file ZIP
-export const downloadPlaylist = async (id, fallbackName = "playlist.zip") => {
-  await downloadWithAuth(`${apiClient.defaults.baseURL}/playlists/${id}/download`, fallbackName);
+export const downloadPlaylist = async (id, fallbackName = "playlist.zip", onProgress = null, signal = null) => {
+  return await downloadWithAuth(`${apiClient.defaults.baseURL}/playlists/${id}/download`, fallbackName, onProgress, signal);
 };
