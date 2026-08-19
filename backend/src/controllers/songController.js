@@ -1,5 +1,13 @@
 const prisma = require("../lib/prisma");
+const axios = require("axios");
 const { getRadioSongs, semanticSearch, enrichQueryForSemantic } = require("../services/aiTools");
+
+// Sanitize tên file tải về (bỏ ký tự đặc biệt không hợp lệ trong tên file)
+function sanitizeFile(name) {
+  return String(name || "file")
+    .replace(/[\\/:*?"<>|]/g, "_")
+    .trim();
+}
 
 // Lấy danh sách bài hát, hỗ trợ tìm kiếm theo q (title / artist) + lọc genre / year / country + phân trang
 const getSongs = async (req, res) => {
@@ -122,6 +130,55 @@ const getRandomSongs = async (req, res) => {
   }
 };
 
+// Download bài hát (proxy qua backend để tránh CORS từ nguồn ngoài)
+const downloadSong = async (req, res) => {
+  try {
+    const songId = parseInt(req.params.id);
+
+    if (isNaN(songId)) {
+      return res.status(400).json({ error: "ID bài hát không hợp lệ" });
+    }
+
+    const song = await prisma.song.findUnique({ where: { id: songId } });
+
+    if (!song || !song.audioURL) {
+      return res.status(404).json({ error: "Không tìm thấy bài hát" });
+    }
+
+    let upstream;
+    try {
+      upstream = await axios.get(song.audioURL, {
+        responseType: "stream",
+        timeout: 15000,
+        maxRedirects: 5,
+      });
+    } catch (error) {
+      console.error("Không lấy được file audio từ nguồn:", error.message);
+      return res.status(502).json({ error: "Không thể lấy file từ nguồn nhạc" });
+    }
+
+    const filename = `${sanitizeFile(song.title)} - ${sanitizeFile(song.artist)}.mp3`;
+    res.setHeader("Content-Type", upstream.headers["content-type"] || "audio/mpeg");
+    res.setHeader("Content-Disposition", `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`);
+    if (upstream.headers["content-length"]) {
+      res.setHeader("Content-Length", upstream.headers["content-length"]);
+    }
+
+    upstream.data.on("error", (err) => {
+      console.error("Lỗi stream file audio:", err.message);
+      res.destroy();
+    });
+    req.on("close", () => upstream.data.destroy());
+    upstream.data.pipe(res);
+  } catch (error) {
+    console.error("Error to download song:", error);
+    if (!res.headersSent) {
+      return res.status(500).json({ error: "Đã xảy ra lỗi hệ thống khi tải bài hát" });
+    }
+    res.destroy();
+  }
+};
+
 // Radio: chuỗi bài tương tự 1 bài (ưu tiên semantic embedding, fallback genre)
 const getSongRadio = async (req, res) => {
   try {
@@ -186,6 +243,7 @@ module.exports = {
   getSongs,
   getFacets,
   getRandomSongs,
+  downloadSong,
   getSongRadio,
   getMoodSongs,
 };

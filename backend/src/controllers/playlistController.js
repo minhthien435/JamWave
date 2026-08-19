@@ -1,4 +1,29 @@
 const prisma = require("../lib/prisma");
+const { ZipArchive } = require("archiver");
+const axios = require("axios");
+const jwt = require("jsonwebtoken");
+const { deleteUploadedFile } = require("../middlewares/upload");
+
+// Sanitize tên file tải về (bỏ ký tự đặc biệt không hợp lệ trong tên file)
+function sanitizeFile(name) {
+  return String(name || "file")
+    .replace(/[\\/:*?"<>|]/g, "_")
+    .trim();
+}
+
+// Lấy userId từ Bearer token (null nếu không có / token lỗi) — cho route public tùy chọn auth
+function getOptionalUserId(req) {
+  const header = req.headers.authorization;
+  if (header && header.startsWith("Bearer ")) {
+    try {
+      const decoded = jwt.verify(header.slice(7), process.env.JWT_SECRET);
+      if (decoded && decoded.userId) return Number(decoded.userId);
+    } catch {
+      // token không hợp lệ
+    }
+  }
+  return null;
+}
 
 // 1. Lấy tất cả playlist của người dùng đang đăng nhập
 const getUserPlaylists = async (req, res) => {
@@ -20,6 +45,7 @@ const getUserPlaylists = async (req, res) => {
       id: pl.id,
       title: pl.title,
       isPublic: pl.isPublic,
+      coverImg: pl.coverImg,
       songCount: pl._count.songs,
       createdAt: pl.createdAt,
       updatedAt: pl.updatedAt,
@@ -100,6 +126,7 @@ const getPlaylistById = async (req, res) => {
       id: playlist.id,
       title: playlist.title,
       isPublic: playlist.isPublic,
+      coverImg: playlist.coverImg,
       createdAt: playlist.createdAt,
       updatedAt: playlist.updatedAt,
       songs: formattedSongs,
@@ -365,12 +392,124 @@ const getSharedPlaylist = async (req, res) => {
       id: playlist.id,
       title: playlist.title,
       ownerName: playlist.user.name,
+      coverImg: playlist.coverImg,
       createdAt: playlist.createdAt,
       songs: formattedSongs,
     });
   } catch (error) {
     console.error("Lỗi lấy playlist được chia sẻ:", error);
     return res.status(500).json({ error: "Đã xảy ra lỗi hệ thống khi lấy playlist chia sẻ" });
+  }
+};
+
+// 10. Upload / đổi ảnh bìa playlist (chỉ chủ sở hữu)
+const uploadPlaylistCover = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const playlistId = parseInt(req.params.id);
+
+    if (isNaN(playlistId)) {
+      return res.status(400).json({ error: "ID playlist không hợp lệ" });
+    }
+
+    const playlist = await prisma.playlist.findUnique({ where: { id: playlistId } });
+
+    if (!playlist) {
+      return res.status(404).json({ error: "Không tìm thấy playlist" });
+    }
+
+    if (playlist.userId !== userId) {
+      return res.status(403).json({ error: "Bạn không có quyền chỉnh sửa playlist này" });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ error: "Chưa có file ảnh" });
+    }
+
+    const coverUrl = `/uploads/covers/${req.file.filename}`;
+
+    // Xóa ảnh bìa cũ nếu là file đã upload
+    deleteUploadedFile(playlist.coverImg);
+
+    const updated = await prisma.playlist.update({
+      where: { id: playlistId },
+      data: { coverImg: coverUrl },
+    });
+
+    return res.status(200).json({
+      message: "Cập nhật ảnh bìa thành công",
+      playlist: { id: updated.id, title: updated.title, isPublic: updated.isPublic, coverImg: updated.coverImg },
+    });
+  } catch (error) {
+    console.error("Lỗi upload ảnh bìa playlist:", error);
+    return res.status(500).json({ error: "Đã xảy ra lỗi hệ thống khi cập nhật ảnh bìa" });
+  }
+};
+
+// 11. Tải playlist dưới dạng ZIP (chủ sở hữu hoặc playlist công khai)
+const downloadPlaylist = async (req, res) => {
+  try {
+    const playlistId = parseInt(req.params.id);
+
+    if (isNaN(playlistId)) {
+      return res.status(400).json({ error: "ID playlist không hợp lệ" });
+    }
+
+    const playlist = await prisma.playlist.findUnique({
+      where: { id: playlistId },
+      include: { songs: { include: { song: true }, orderBy: { playlistId: "asc" } } },
+    });
+
+    if (!playlist) {
+      return res.status(404).json({ error: "Không tìm thấy playlist" });
+    }
+
+    // Cho phép: chủ sở hữu hoặc playlist công khai
+    const userId = getOptionalUserId(req);
+    if (playlist.userId !== userId && !playlist.isPublic) {
+      return res.status(403).json({ error: "Playlist này không công khai" });
+    }
+
+    const songs = playlist.songs.map((ps) => ps.song).filter((s) => s.audioURL);
+    if (songs.length === 0) {
+      return res.status(400).json({ error: "Playlist chưa có bài hát nào để tải" });
+    }
+
+    const zipName = `${sanitizeFile(playlist.title)}.zip`;
+    res.setHeader("Content-Type", "application/zip");
+    res.setHeader("Content-Disposition", `attachment; filename*=UTF-8''${encodeURIComponent(zipName)}`);
+
+    const archive = new ZipArchive({ zlib: { level: 6 } });
+    archive.on("error", (err) => {
+      console.error("Lỗi tạo zip playlist:", err.message);
+      res.destroy();
+    });
+    archive.pipe(res);
+
+    // Nén từng bài (stream trực tiếp từ nguồn — không tốn RAM cho toàn file)
+    let index = 1;
+    for (const song of songs) {
+      const fname = `${String(index).padStart(2, "0")} - ${sanitizeFile(song.title)} - ${sanitizeFile(song.artist)}.mp3`;
+      index += 1;
+      try {
+        const upstream = await axios.get(song.audioURL, {
+          responseType: "stream",
+          timeout: 20000,
+          maxRedirects: 5,
+        });
+        archive.append(upstream.data, { name: fname });
+      } catch (err) {
+        console.error(`Không lấy được file "${song.title}":`, err.message);
+      }
+    }
+
+    archive.finalize();
+  } catch (error) {
+    console.error("Lỗi download playlist:", error);
+    if (!res.headersSent) {
+      return res.status(500).json({ error: "Đã xảy ra lỗi hệ thống khi tải playlist" });
+    }
+    res.destroy();
   }
 };
 
@@ -384,4 +523,6 @@ module.exports = {
   removeSongFromPlaylist,
   togglePlaylistPublic,
   getSharedPlaylist,
+  uploadPlaylistCover,
+  downloadPlaylist,
 };

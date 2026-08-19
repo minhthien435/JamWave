@@ -1,4 +1,5 @@
 import apiClient from "./client";
+import { downloadWithAuth } from "./download";
 
 export const fetchPlaylists = async () => {
   const response = await apiClient.get("/playlists");
@@ -44,4 +45,17 @@ export const addSongToPlaylist = async (playlistId, songId) => {
 export const removeSongFromPlaylist = async (playlistId, songId) => {
   const response = await apiClient.delete(`/playlists/${playlistId}/songs/${songId}`);
   return response.data;
+};
+
+// Upload / đổi ảnh bìa playlist (chỉ chủ sở hữu)
+export const updatePlaylistCover = async (id, file) => {
+  const formData = new FormData();
+  formData.append("cover", file);
+  const response = await apiClient.post(`/playlists/${id}/cover`, formData);
+  return response.data;
+};
+
+// Tải toàn bộ playlist dưới dạng file ZIP
+export const downloadPlaylist = async (id, fallbackName = "playlist.zip") => {
+  await downloadWithAuth(`${apiClient.defaults.baseURL}/playlists/${id}/download`, fallbackName);
 };

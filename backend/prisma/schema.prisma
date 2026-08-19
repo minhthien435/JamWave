@@ -74,6 +74,7 @@ model Playlist {
   id        Int            @id @default(autoincrement())
   title     String
   isPublic  Boolean        @default(false)
+  coverImg  String? // Ảnh bìa playlist do user upload (đường dẫn /uploads/...)
   userId    Int
   user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   songs     PlaylistSong[]

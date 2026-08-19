@@ -3,15 +3,17 @@ import {
   Clock,
   Heart,
   X,
-  MusicNotes,
   Queue,
   Broadcast,
   SpinnerGap,
+  Ticket,
+  DownloadSimple,
 } from "@phosphor-icons/react";
 import { usePlayerStore } from "../usePlayerStore";
 import { useAuthStore } from "../useAuthStore";
 import { useLikedSongs } from "../hooks/useLikedSongs";
-import { fetchRadio } from "../api/songs";
+import { fetchRadio, downloadSong } from "../api/songs";
+import { useToast } from "./ToastContext";
 import { useState } from "react";
 
 const formatDuration = (seconds) => {
@@ -21,11 +23,13 @@ const formatDuration = (seconds) => {
   return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
 };
 
-export default function SongTable({ songs, onRemove, onUnlike, emptyText = "Chưa có bài hát nào" }) {
+export default function SongTable({ songs, onRemove, onUnlike, emptyText = "Chưa có bài hát nào trong danh sách" }) {
   const user = useAuthStore((s) => s.user);
   const { likedIds, toggleLike } = useLikedSongs();
   const { currentSong, isPlaying, setCurrentSong, togglePlay, addToQueue, setQueue } = usePlayerStore();
+  const toast = useToast();
   const [radioId, setRadioId] = useState(null);
+  const [downloadingId, setDownloadingId] = useState(null);
 
   const handleSelectSong = (song) => {
     if (currentSong?.id === song.id) {
@@ -63,82 +67,97 @@ export default function SongTable({ songs, onRemove, onUnlike, emptyText = "Chư
     }
   };
 
+  // Tải bài hát về máy (proxy qua backend để tránh CORS từ nguồn ngoài)
+  const handleDownload = async (e, song) => {
+    e.stopPropagation();
+    if (downloadingId) return;
+    setDownloadingId(song.id);
+    try {
+      await downloadSong(song.id, `${song.title} - ${song.artist}.mp3`);
+    } catch (err) {
+      toast?.error?.(err.message);
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
   if (songs.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 text-center">
-        <MusicNotes size={40} weight="duotone" className="text-zinc-600 mb-3" />
-        <p className="text-zinc-400 font-medium">{emptyText}</p>
+      <div className="flex flex-col items-center justify-center py-16 text-center border border-dashed-indie rounded-2xl p-6 bg-[#221D18]/50">
+        <Ticket size={40} weight="duotone" className="text-[#8A7B6C] mb-3" />
+        <p className="font-mono text-xs text-[#A39282]">{emptyText}</p>
       </div>
     );
   }
 
   return (
-    <div className="w-full select-none">
-      {/* Table Header */}
-      <div className="grid grid-cols-[32px_1fr_120px] sm:grid-cols-[32px_1fr_1fr_120px] gap-4 px-4 py-2.5 border-b border-white/10 text-[11px] font-bold text-zinc-400 uppercase tracking-wider">
-        <span>#</span>
-        <span>Tiêu đề</span>
-        <span className="hidden sm:block">Nghệ sĩ</span>
+    <div className="w-full select-none font-sans">
+      {/* Table Header dạng Stamped Labels */}
+      <div className="grid grid-cols-[36px_1fr_120px] sm:grid-cols-[36px_1fr_1fr_120px] gap-4 px-4 py-2 border-b border-dashed-indie font-mono text-[10px] font-bold text-[#8A7B6C] uppercase tracking-[0.14em]">
+        <span>#NO</span>
+        <span>BÀI HÁT / GIAI ĐIỆU</span>
+        <span className="hidden sm:block">NGHỆ SĨ</span>
         <span className="flex justify-end items-center pr-2">
-          <Clock size={15} weight="bold" />
+          <Clock size={13} weight="bold" />
         </span>
       </div>
 
-      {/* Table Body / Rows */}
-      <div className="divide-y divide-transparent mt-1">
+      {/* Table Body / Ticket Stub Rows */}
+      <div className="flex flex-col gap-1.5 mt-2">
         {songs.map((song, index) => {
           const isThisSongSelected = currentSong?.id === song.id;
           const isLiked = likedIds.has(song.id);
+          const trackNum = index + 1 < 10 ? `0${index + 1}` : `${index + 1}`;
 
           return (
             <div
               key={`list-${song.id}`}
               onClick={() => handleSelectSong(song)}
-              className={`grid grid-cols-[32px_1fr_120px] sm:grid-cols-[32px_1fr_1fr_120px] gap-4 px-4 py-2.5 rounded-xl items-center group cursor-pointer transition-all duration-150 ${
+              className={`ticket-row grid grid-cols-[36px_1fr_120px] sm:grid-cols-[36px_1fr_1fr_120px] gap-4 px-4 py-2.5 rounded-xl items-center group cursor-pointer ${
                 isThisSongSelected
-                  ? "bg-violet-600/15 border border-violet-500/30"
-                  : "hover:bg-white/[0.05] border border-transparent"
+                  ? "bg-[#2E2721] border-[#D97C54] shadow-md shadow-black/40"
+                  : ""
               }`}
             >
-              {/* Cột 1: STT / Play-Pause / Equalizer Icon */}
-              <div className="text-xs font-semibold text-zinc-400 flex items-center justify-center tabular-nums">
+              {/* Cột 1: STT Typewriter Mono / Play Icon */}
+              <div className="font-mono text-xs font-bold text-[#D97C54] flex items-center justify-center">
                 {isThisSongSelected ? (
                   isPlaying ? (
-                    <div className="flex items-center gap-[2px]">
-                      <span className="w-[3px] bg-violet-400 rounded-full equalizer-bar-1" />
-                      <span className="w-[3px] bg-purple-400 rounded-full equalizer-bar-2" />
-                      <span className="w-[3px] bg-violet-300 rounded-full equalizer-bar-3" />
+                    <div className="w-4 h-4 rounded-full border border-[#D97C54] flex items-center justify-center reel-spinning">
+                      <div className="w-1 h-1 rounded-full bg-[#D97C54]" />
                     </div>
                   ) : (
-                    <Play size={14} weight="fill" className="text-violet-400" />
+                    <Play size={13} weight="fill" className="text-[#D97C54]" />
                   )
                 ) : (
                   <>
-                    <span className="group-hover:hidden text-zinc-500">{index + 1}</span>
-                    <Play size={14} weight="fill" className="hidden group-hover:block text-zinc-200" />
+                    <span className="group-hover:hidden text-[#8A7B6C]">{trackNum}</span>
+                    <Play size={13} weight="fill" className="hidden group-hover:block text-[#EDE6D6]" />
                   </>
                 )}
               </div>
 
-              {/* Cột 2: Ảnh & Tiêu đề bài hát */}
+              {/* Cột 2: Ảnh Mini Polaroid & Tiêu đề bài hát */}
               <div className="flex items-center gap-3 min-w-0">
-                <img
-                  src={song.albumCover}
-                  alt={song.title}
-                  loading="lazy"
-                  className="w-10 h-10 rounded-lg object-cover flex-shrink-0 shadow-sm"
-                />
+                <div className="w-9 h-9 p-0.5 bg-[#28221D] border border-[#EDE6D6]/15 rounded flex-shrink-0 shadow-sm">
+                  <img
+                    src={song.albumCover}
+                    alt={song.title}
+                    loading="lazy"
+                    className="w-full h-full rounded object-cover"
+                  />
+                </div>
                 <div className="truncate flex-1 min-w-0">
                   <p
-                    className={`text-sm truncate font-semibold ${
+                    className={`font-serif italic text-sm truncate ${
                       isThisSongSelected
-                        ? "text-violet-300 font-bold"
-                        : "text-white group-hover:text-violet-200 transition-colors"
+                        ? "text-[#D97C54] font-semibold"
+                        : "text-[#EDE6D6] group-hover:text-[#D97C54] transition-colors"
                     }`}
                   >
                     {song.title}
                   </p>
-                  <p className="text-xs text-zinc-400 truncate sm:hidden font-medium mt-0.5">
+                  <p className="font-mono text-[10px] text-[#A39282] truncate sm:hidden mt-0.5">
                     {song.artist}
                   </p>
                 </div>
@@ -148,13 +167,13 @@ export default function SongTable({ songs, onRemove, onUnlike, emptyText = "Chư
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
                     <button
                       onClick={(e) => handleLike(e, song)}
-                      className="text-zinc-400 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-all"
+                      className="text-[#8A7B6C] hover:text-[#D97C54] p-1.5 rounded-lg hover:bg-[#2E2721] transition-all"
                       title={isLiked ? "Bỏ thích" : "Yêu thích"}
                     >
                       <Heart
-                        size={16}
+                        size={15}
                         weight={isLiked ? "fill" : "regular"}
-                        className={isLiked ? "text-rose-500 fill-rose-500 filter drop-shadow-[0_0_6px_rgba(244,63,94,0.4)]" : ""}
+                        className={isLiked ? "text-[#D97C54] fill-[#D97C54] filter drop-shadow-[0_0_5px_rgba(217,124,84,0.4)]" : ""}
                       />
                     </button>
                     <button
@@ -162,21 +181,33 @@ export default function SongTable({ songs, onRemove, onUnlike, emptyText = "Chư
                         e.stopPropagation();
                         addToQueue(song);
                       }}
-                      className="text-zinc-400 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-all"
+                      className="text-[#8A7B6C] hover:text-[#EDE6D6] p-1.5 rounded-lg hover:bg-[#2E2721] transition-all"
                       title="Thêm vào hàng chờ"
                     >
-                      <Queue size={16} weight="duotone" />
+                      <Queue size={15} weight="duotone" />
                     </button>
                     <button
                       onClick={(e) => handleRadio(e, song)}
                       disabled={radioId === song.id}
-                      className="text-zinc-400 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-all"
+                      className="text-[#8A7B6C] hover:text-[#EDE6D6] p-1.5 rounded-lg hover:bg-[#2E2721] transition-all"
                       title="Tạo đài bài tương tự"
                     >
                       {radioId === song.id ? (
-                        <SpinnerGap size={16} className="animate-spin text-violet-400" />
+                        <SpinnerGap size={15} className="animate-spin text-[#D97C54]" />
                       ) : (
-                        <Broadcast size={16} weight="duotone" />
+                        <Broadcast size={15} weight="duotone" />
+                      )}
+                    </button>
+                    <button
+                      onClick={(e) => handleDownload(e, song)}
+                      disabled={downloadingId === song.id}
+                      className="text-[#8A7B6C] hover:text-[#EDE6D6] p-1.5 rounded-lg hover:bg-[#2E2721] transition-all"
+                      title="Tải bài hát (mp3)"
+                    >
+                      {downloadingId === song.id ? (
+                        <SpinnerGap size={15} className="animate-spin text-[#D97C54]" />
+                      ) : (
+                        <DownloadSimple size={15} weight="duotone" />
                       )}
                     </button>
                   </div>
@@ -184,22 +215,22 @@ export default function SongTable({ songs, onRemove, onUnlike, emptyText = "Chư
               </div>
 
               {/* Cột 3: Nghệ sĩ */}
-              <div className="hidden sm:block text-xs font-medium text-zinc-400 truncate group-hover:text-zinc-200 transition-colors">
+              <div className="hidden sm:block font-mono text-xs text-[#A39282] truncate group-hover:text-[#EDE6D6] transition-colors">
                 {song.artist}
               </div>
 
               {/* Cột 4: Thời lượng + nút xóa */}
-              <div className="text-xs text-zinc-400 font-medium tabular-nums flex justify-end items-center gap-3 pr-2">
+              <div className="font-mono text-xs text-[#8A7B6C] flex justify-end items-center gap-3 pr-2">
                 {onRemove && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       onRemove(song);
                     }}
-                    className="text-zinc-500 hover:text-rose-400 p-1 rounded-lg hover:bg-white/10 transition-colors"
+                    className="text-[#8A7B6C] hover:text-red-400 p-1 rounded-lg hover:bg-[#2E2721] transition-colors"
                     title="Xóa khỏi playlist"
                   >
-                    <X size={15} />
+                    <X size={14} />
                   </button>
                 )}
                 <span>{formatDuration(song.duration)}</span>

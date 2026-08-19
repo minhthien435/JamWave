@@ -1,4 +1,5 @@
 const prisma = require("../lib/prisma");
+const { deleteUploadedFile } = require("../middlewares/upload");
 
 // Hồ sơ cá nhân kèm thống kê (likes, playlists, giờ nghe, top thể loại)
 const getProfile = async (req, res) => {
@@ -72,4 +73,63 @@ const getProfile = async (req, res) => {
   }
 };
 
-module.exports = { getProfile };
+// Cập nhật thông tin hồ sơ (hiện tại: tên hiển thị)
+const updateProfile = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { name } = req.body;
+
+    if (name !== undefined) {
+      const trimmed = String(name).trim();
+      if (!trimmed) {
+        return res.status(400).json({ error: "Tên không được để trống" });
+      }
+      if (trimmed.length > 50) {
+        return res.status(400).json({ error: "Tên tối đa 50 ký tự" });
+      }
+      await prisma.user.update({ where: { id: userId }, data: { name: trimmed } });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, name: true, role: true, avatarUrl: true, createdAt: true },
+    });
+
+    return res.status(200).json({ message: "Cập nhật hồ sơ thành công", user });
+  } catch (error) {
+    console.error("Lỗi cập nhật hồ sơ:", error);
+    return res.status(500).json({ error: "Đã xảy ra lỗi hệ thống khi cập nhật hồ sơ" });
+  }
+};
+
+// Upload avatar (ảnh đại diện)
+const uploadAvatar = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    if (!req.file) {
+      return res.status(400).json({ error: "Chưa có file ảnh" });
+    }
+
+    const avatarUrl = `/uploads/avatars/${req.file.filename}`;
+
+    // Xóa avatar cũ nếu là file đã upload (không đụng avatar Google URL ngoài)
+    const existing = await prisma.user.findUnique({ where: { id: userId }, select: { avatarUrl: true } });
+    if (existing?.avatarUrl && existing.avatarUrl.startsWith("/uploads/")) {
+      deleteUploadedFile(existing.avatarUrl);
+    }
+
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: { avatarUrl },
+      select: { id: true, email: true, name: true, role: true, avatarUrl: true, createdAt: true },
+    });
+
+    return res.status(200).json({ message: "Cập nhật avatar thành công", user });
+  } catch (error) {
+    console.error("Lỗi upload avatar:", error);
+    return res.status(500).json({ error: "Đã xảy ra lỗi hệ thống khi upload avatar" });
+  }
+};
+
+module.exports = { getProfile, updateProfile, uploadAvatar };

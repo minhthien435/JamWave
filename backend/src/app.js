@@ -16,6 +16,7 @@ const adminRoutes = require('./routes/admin');
 const profileRoutes = require('./routes/profile');
 const wrappedRoutes = require('./routes/wrapped');
 const { generalLimiter } = require('./middlewares/rateLimit');
+const { ensureUploadDirs, UPLOADS_DIR } = require('./middlewares/upload');
 
 // Yêu cầu JWT_SECRET trong môi trường
 if (!process.env.JWT_SECRET) {
@@ -45,6 +46,9 @@ app.use('/api', generalLimiter);
 // Đăng ký trước route "/" để root trả về app thay vì message API
 const distPath = path.join(__dirname, '..', '..', 'frontend', 'dist');
 app.use(express.static(distPath));
+// File upload (bìa playlist / avatar) — đăng ký TRƯỚC catch-all SPA
+ensureUploadDirs();
+app.use('/uploads', express.static(UPLOADS_DIR));
 app.use((req, res, next) => {
     if (req.method !== 'GET' || req.path.startsWith('/api')) return next();
     res.sendFile(path.join(distPath, 'index.html'), (err) => {

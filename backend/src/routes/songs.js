@@ -8,6 +8,7 @@ router.get("/", songController.getSongs);
 router.get("/facets", songController.getFacets);
 router.get("/mood", songController.getMoodSongs);
 router.get("/random", songController.getRandomSongs);
+router.get("/:id/download", songController.downloadSong);
 router.get("/:id/radio", songController.getSongRadio);
 router.post("/:id/listen", authMiddleware, listenController.recordListen);
 

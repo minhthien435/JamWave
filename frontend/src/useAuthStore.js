@@ -104,4 +104,10 @@ export const useAuthStore = create((set) => ({
     localStorage.removeItem(USER_KEY);
     set({ token: null, user: null, error: null });
   },
+
+  // Cập nhật user trong store + localStorage (sau khi sửa hồ sơ / avatar)
+  setUser(user) {
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
+    set({ user });
+  },
 }));

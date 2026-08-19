@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   MusicNotes,
@@ -13,6 +13,8 @@ import {
   Check,
   SpinnerGap,
   Queue,
+  DownloadSimple,
+  UploadSimple,
 } from "@phosphor-icons/react";
 import { usePlayerStore } from "../usePlayerStore";
 import { useAuthStore } from "../useAuthStore";
@@ -28,6 +30,8 @@ import {
   removeSongFromPlaylist,
   renamePlaylist,
   togglePlaylistPublic,
+  updatePlaylistCover,
+  downloadPlaylist,
 } from "../api/playlists";
 import { fetchSongs } from "../api/songs";
 
@@ -57,6 +61,9 @@ function PlaylistView({ id }) {
   const [addingSongId, setAddingSongId] = useState(null);
   const [renameMode, setRenameMode] = useState(false);
   const [newTitle, setNewTitle] = useState("");
+  const [uploadingCover, setUploadingCover] = useState(false);
+  const [downloadingZip, setDownloadingZip] = useState(false);
+  const coverInputRef = useRef(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -190,20 +197,57 @@ function PlaylistView({ id }) {
     }
   };
 
+  const handleCoverFile = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      toastError("Chỉ hỗ trợ ảnh JPG/PNG/WebP");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toastError("Ảnh tối đa 5MB");
+      return;
+    }
+    setUploadingCover(true);
+    try {
+      const result = await updatePlaylistCover(playlist.id, file);
+      setPlaylist((prev) => ({ ...prev, coverImg: result.playlist.coverImg }));
+      await loadPlaylists();
+      toastSuccess("Đã cập nhật ảnh bìa playlist");
+    } catch (err) {
+      toastError(err.message);
+    } finally {
+      setUploadingCover(false);
+    }
+  };
+
+  const handleDownloadZip = async () => {
+    if (downloadingZip) return;
+    setDownloadingZip(true);
+    try {
+      await downloadPlaylist(playlist.id, `${playlist.title}.zip`);
+    } catch (err) {
+      toastError(err.message);
+    } finally {
+      setDownloadingZip(false);
+    }
+  };
+
   if (!playlist && !error) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-violet-400">
+      <div className="flex flex-col items-center justify-center py-20 text-[#D97C54] font-sans">
         <SpinnerGap size={32} className="animate-spin mb-3" />
-        <p className="text-sm text-zinc-400 font-medium">Đang tải playlist...</p>
+        <p className="font-mono text-xs text-[#A39282]">Đang tải playlist...</p>
       </div>
     );
   }
 
   if (error || !playlist) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-center">
-        <p className="text-rose-400 font-semibold mb-2">Không thể tải playlist</p>
-        <p className="text-zinc-500 text-sm">{error}</p>
+      <div className="flex flex-col items-center justify-center py-20 text-center font-sans">
+        <p className="font-mono text-sm text-red-400 mb-2">Không thể tải playlist</p>
+        <p className="font-mono text-xs text-[#A39282]">{error}</p>
       </div>
     );
   }
@@ -214,31 +258,65 @@ function PlaylistView({ id }) {
   const ownerName = playlist.ownerName || user?.name || "";
 
   return (
-    <div className="space-y-6 pb-6 select-none">
+    <div className="space-y-6 pb-6 font-sans select-none">
       {/* Header Playlist Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-[#14141c] p-6 sm:p-8 border border-white/10 shadow-2xl">
+      <div className="relative overflow-hidden rounded-2xl indie-panel p-6 sm:p-8 border-dashed-indie shadow-2xl">
         <div className="flex flex-col sm:flex-row items-start sm:items-end gap-6 relative z-10">
-          <div className="w-40 h-40 sm:w-48 sm:h-48 bg-gradient-to-br from-violet-600 to-fuchsia-700 rounded-2xl flex items-center justify-center text-white shadow-xl flex-shrink-0 border border-white/10">
-            <MusicNotes size={64} weight="duotone" />
+          {/* Cover */}
+          <div className="w-36 h-36 sm:w-44 sm:h-44 bg-[#26211C] border border-[#EDE6D6]/20 rounded-xl flex items-center justify-center text-[#D97C54] shadow-xl flex-shrink-0 relative overflow-hidden">
+            <div className="washi-tape absolute -top-2.5 left-1/2 -translate-x-1/2 w-12 h-3.5 rounded-sm rotate-2 z-10" />
+            {playlist.coverImg ? (
+              <img src={playlist.coverImg} alt={playlist.title} className="absolute inset-0 w-full h-full object-cover" />
+            ) : (
+              <MusicNotes size={56} weight="duotone" />
+            )}
+            {isOwner && (
+              <>
+                <input
+                  ref={coverInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  onChange={handleCoverFile}
+                />
+                <button
+                  onClick={() => coverInputRef.current?.click()}
+                  disabled={uploadingCover}
+                  className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/55 opacity-0 hover:opacity-100 transition-opacity text-[#EDE6D6]"
+                  title="Đổi ảnh bìa playlist"
+                >
+                  {uploadingCover ? (
+                    <SpinnerGap size={22} className="animate-spin" />
+                  ) : (
+                    <>
+                      <UploadSimple size={22} weight="duotone" />
+                      <span className="font-mono text-[10px] font-bold uppercase tracking-wider">Đổi ảnh</span>
+                    </>
+                  )}
+                </button>
+              </>
+            )}
           </div>
-          <div className="min-w-0 flex-1 space-y-2">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs uppercase font-bold tracking-widest text-violet-300 px-3.5 py-1 rounded-full bg-violet-900/30 border border-violet-700/30">
-                {isOwner ? "Playlist cá nhân" : "Playlist được chia sẻ"}
+
+          <div className="min-w-0 flex-1 space-y-2.5">
+            <div className="flex items-center gap-2 flex-wrap font-mono">
+              <span className="text-[10px] uppercase font-bold tracking-widest text-[#D97C54] px-3 py-0.5 rounded-full bg-[#B85C38]/20 border border-[#B85C38]/30">
+                {isOwner ? "PLAYLIST CỦA TÔI" : "PLAYLIST CHIA SẺ"}
               </span>
               {playlist.isPublic !== undefined && (
                 <span
-                  className={`text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-full border flex items-center gap-1.5 ${
+                  className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border flex items-center gap-1.5 ${
                     playlist.isPublic
-                      ? "text-emerald-300 bg-emerald-500/10 border-emerald-400/30"
-                      : "text-zinc-400 bg-white/5 border-white/10"
+                      ? "text-[#76876F] bg-[#76876F]/15 border-[#76876F]/30"
+                      : "text-[#A39282] bg-[#26211C] border-[#EDE6D6]/10"
                   }`}
                 >
-                  {playlist.isPublic ? <Globe size={13} /> : <Lock size={13} />}
-                  {playlist.isPublic ? "Công khai" : "Riêng tư"}
+                  {playlist.isPublic ? <Globe size={12} /> : <Lock size={12} />}
+                  {playlist.isPublic ? "Công Khai" : "Riêng Tư"}
                 </span>
               )}
             </div>
+
             <div className="flex items-center gap-3">
               {isOwner && renameMode ? (
                 <input
@@ -250,10 +328,12 @@ function PlaylistView({ id }) {
                     if (e.key === "Escape") setRenameMode(false);
                   }}
                   autoFocus
-                  className="bg-white/10 text-2xl sm:text-4xl font-black tracking-tight px-4 py-1 rounded-2xl outline-none border border-violet-500 text-white w-full max-w-md"
+                  className="bg-[#201A16] font-serif italic text-2xl sm:text-3xl font-bold px-3 py-1 rounded-xl outline-none border border-[#D97C54] text-[#EDE6D6] w-full max-w-md"
                 />
               ) : (
-                <h1 className="text-2xl sm:text-4xl font-black tracking-tight truncate text-white">{playlist.title}</h1>
+                <h1 className="font-serif italic text-2xl sm:text-4xl font-bold tracking-tight truncate text-[#EDE6D6]">
+                  {playlist.title}
+                </h1>
               )}
               {isOwner && (
                 <button
@@ -261,76 +341,92 @@ function PlaylistView({ id }) {
                     setNewTitle(playlist.title);
                     setRenameMode((mode) => !mode);
                   }}
-                  className="text-zinc-400 hover:text-violet-300 p-2 rounded-full hover:bg-white/10 transition-colors flex-shrink-0"
+                  className="text-[#A39282] hover:text-[#D97C54] p-1.5 rounded-xl hover:bg-[#26211C] transition-colors flex-shrink-0"
                   title="Đổi tên playlist"
                 >
-                  <PencilSimple size={18} weight="bold" />
+                  <PencilSimple size={16} weight="bold" />
                 </button>
               )}
             </div>
-            <p className="text-xs sm:text-sm text-zinc-300 font-medium">
-              <span className="tabular-nums">{playlistSongs.length}</span> bài hát • Tạo bởi <span className="text-white font-bold">{ownerName}</span>
+
+            <p className="font-mono text-xs text-[#A39282]">
+              <span>{playlistSongs.length}</span> bài hát • Tạo bởi <span className="text-[#EDE6D6] font-bold">{ownerName}</span>
             </p>
 
-            <div className="flex items-center gap-3 pt-3 flex-wrap">
+            {/* Action Bar */}
+            <div className="flex items-center gap-2.5 pt-2 flex-wrap font-mono text-xs">
               <button
                 onClick={handlePlayAll}
                 disabled={playlistSongs.length === 0}
-                className="w-13 h-13 w-[52px] h-[52px] rounded-full bg-violet-600 hover:bg-violet-500 text-white flex items-center justify-center hover:scale-105 disabled:opacity-40 disabled:hover:scale-100 transition-all shadow-md shadow-violet-950/60 active:scale-95"
-                title={isPlayingThis ? "Đang phát" : "Phát tất cả"}
+                className="w-11 h-11 rounded-xl bg-[#B85C38] hover:bg-[#D97C54] text-[#EDE6D6] flex items-center justify-center disabled:opacity-40 transition-all shadow-md active:scale-95 border border-[#EDE6D6]/20"
+                title={isPlayingThis ? "Đang phát" : "Phát playlist"}
               >
-                <Play size={22} weight="fill" className="ml-0.5" />
+                <Play size={18} weight="fill" className="ml-0.5" />
+              </button>
+
+              <button
+                onClick={handleDownloadZip}
+                disabled={downloadingZip || playlistSongs.length === 0}
+                className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#26211C] hover:bg-[#2E2721] border border-[#EDE6D6]/15 text-[#EDE6D6] transition-all active:scale-95 disabled:opacity-50"
+                title="Tải playlist dạng ZIP"
+              >
+                {downloadingZip ? (
+                  <SpinnerGap size={13} className="animate-spin" />
+                ) : (
+                  <DownloadSimple size={13} weight="duotone" />
+                )}
+                Tải ZIP
               </button>
 
               {isOwner ? (
                 <>
                   <button
                     onClick={openAddModal}
-                    className="flex items-center gap-2 text-xs font-semibold px-5 py-2.5 rounded-full bg-white/10 hover:bg-white/15 border border-white/10 text-white transition-all active:scale-95"
+                    className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#26211C] hover:bg-[#2E2721] border border-[#EDE6D6]/15 text-[#EDE6D6] transition-all active:scale-95"
                   >
-                    <Plus size={15} weight="bold" />
+                    <Plus size={14} weight="bold" />
                     Thêm bài hát
                   </button>
 
                   <button
                     onClick={handleTogglePublic}
                     disabled={togglingPublic}
-                    className={`flex items-center gap-2 text-xs font-semibold px-5 py-2.5 rounded-full border transition-all active:scale-95 disabled:opacity-60 ${
+                    className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl border transition-all active:scale-95 disabled:opacity-60 ${
                       playlist.isPublic
-                        ? "text-emerald-300 border-emerald-400/30 bg-emerald-500/10 hover:bg-emerald-500/20"
-                        : "text-zinc-300 border-white/10 bg-white/5 hover:bg-white/10"
+                        ? "text-[#76876F] border-[#76876F]/30 bg-[#76876F]/10 hover:bg-[#76876F]/20"
+                        : "text-[#A39282] border-[#EDE6D6]/15 bg-[#26211C] hover:bg-[#2E2721]"
                     }`}
                     title={playlist.isPublic ? "Chuyển về riêng tư" : "Chia sẻ công khai"}
                   >
                     {togglingPublic ? (
-                      <SpinnerGap size={14} className="animate-spin" />
+                      <SpinnerGap size={13} className="animate-spin" />
                     ) : playlist.isPublic ? (
-                      <Globe size={14} />
+                      <Globe size={13} />
                     ) : (
-                      <Lock size={14} />
+                      <Lock size={13} />
                     )}
                     {playlist.isPublic ? "Riêng tư" : "Chia sẻ"}
                   </button>
 
                   <button
                     onClick={handleCopyLink}
-                    className="flex items-center gap-2 text-xs font-semibold px-5 py-2.5 rounded-full bg-white/10 hover:bg-white/15 border border-white/10 text-white transition-all active:scale-95"
+                    className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#26211C] hover:bg-[#2E2721] border border-[#EDE6D6]/15 text-[#EDE6D6] transition-all active:scale-95"
                     title="Sao chép link chia sẻ"
                   >
-                    {copied ? <Check size={14} weight="bold" className="text-emerald-400" /> : <ShareNetwork size={14} />}
-                    {copied ? "Đã chép" : "Sao chép link"}
+                    {copied ? <Check size={13} weight="bold" className="text-[#76876F]" /> : <ShareNetwork size={13} />}
+                    {copied ? "Đã chép" : "Chép link"}
                   </button>
 
                   <button
                     onClick={handleDeletePlaylist}
-                    className="flex items-center gap-2 text-xs font-semibold px-5 py-2.5 rounded-full text-rose-300 border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 transition-all active:scale-95"
+                    className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-red-300 border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 transition-all active:scale-95"
                   >
-                    <Trash size={15} />
-                    Xóa playlist
+                    <Trash size={14} />
+                    Xóa
                   </button>
                 </>
               ) : (
-                <p className="text-xs text-zinc-400 font-medium">Chế độ xem chỉ đọc — đăng nhập để tạo và lưu danh sách phát riêng của bạn.</p>
+                <p className="text-xs text-[#A39282]">Chế độ xem chỉ đọc — đăng nhập để tạo playlist riêng của bạn.</p>
               )}
             </div>
           </div>
@@ -342,37 +438,37 @@ function PlaylistView({ id }) {
         <SongTable
           songs={playlistSongs}
           onRemove={isOwner ? handleRemoveSong : undefined}
-          emptyText={isOwner ? "Playlist trống. Nhấn 'Thêm bài hát' để thêm nhạc." : "Playlist này chưa có bài hát nào."}
+          emptyText={isOwner ? "Playlist chưa có bài nào. Bấm 'Thêm bài hát' để thêm vào danh sách." : "Playlist này hiện chưa có bài hát."}
         />
       </div>
 
       {/* Modal thêm bài hát */}
       {showAddModal && (
         <div
-          className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4"
           onClick={() => setShowAddModal(false)}
         >
           <div
-            className="glass-panel rounded-3xl w-full max-w-lg max-h-[80vh] flex flex-col shadow-2xl border border-white/15 overflow-hidden"
+            className="indie-panel rounded-2xl w-full max-w-lg max-h-[80vh] flex flex-col shadow-2xl border-dashed-indie overflow-hidden font-sans"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-white/5">
-              <h3 className="font-bold text-sm text-white flex items-center gap-2">
-                <Queue size={18} weight="duotone" className="text-violet-400" />
-                Thêm bài hát vào "{playlist.title}"
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-dashed-indie bg-[#26211C]">
+              <h3 className="font-mono text-xs font-bold uppercase tracking-wider text-[#EDE6D6] flex items-center gap-2">
+                <Queue size={16} weight="duotone" className="text-[#D97C54]" />
+                Thêm bản thu vào "{playlist.title}"
               </h3>
               <button
                 onClick={() => setShowAddModal(false)}
-                className="text-zinc-400 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors"
+                className="text-[#A39282] hover:text-[#EDE6D6] p-1 rounded-lg hover:bg-[#2E2721] transition-colors"
               >
-                <X size={18} />
+                <X size={16} />
               </button>
             </div>
 
             <div className="flex-1 overflow-y-auto p-3 space-y-1">
               {allSongs.length === 0 ? (
-                <div className="flex items-center justify-center py-10 text-violet-400">
-                  <SpinnerGap size={28} className="animate-spin" />
+                <div className="flex items-center justify-center py-10 text-[#D97C54]">
+                  <SpinnerGap size={24} className="animate-spin" />
                 </div>
               ) : (
                 allSongs.map((song) => {
@@ -380,31 +476,31 @@ function PlaylistView({ id }) {
                   return (
                     <div
                       key={song.id}
-                      className="flex items-center gap-3 px-4 py-2 rounded-2xl hover:bg-white/5 transition-all"
+                      className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-[#26211C] transition-all"
                     >
-                      <img src={song.albumCover} alt={song.title} loading="lazy" className="w-10 h-10 rounded-lg object-cover flex-shrink-0 shadow-sm" />
+                      <img src={song.albumCover} alt={song.title} loading="lazy" className="w-9 h-9 rounded object-cover flex-shrink-0 shadow-sm" />
                       <div className="truncate flex-1 min-w-0">
                         <div className="flex items-center gap-1.5 min-w-0">
-                          <p className="text-xs font-semibold truncate text-white">{song.title}</p>
+                          <p className="font-serif italic text-xs font-semibold truncate text-[#EDE6D6]">{song.title}</p>
                           <SourceBadge source={song.source} />
                         </div>
-                        <p className="text-[11px] text-zinc-400 truncate font-medium mt-0.5">{song.artist}</p>
+                        <p className="font-mono text-[10px] text-[#A39282] truncate mt-0.5">{song.artist}</p>
                       </div>
                       <button
                         onClick={() => handleAddSong(song)}
                         disabled={isAdded || addingSongId === song.id}
-                        className={`text-xs font-semibold px-4 py-1.5 rounded-full transition-all flex-shrink-0 ${
+                        className={`font-mono text-xs px-3.5 py-1.5 rounded-lg transition-all flex-shrink-0 ${
                           isAdded
-                            ? "bg-white/5 text-zinc-500 cursor-default border border-white/5"
-                            : "bg-violet-600 hover:bg-violet-500 text-white shadow-sm active:scale-95"
+                            ? "bg-[#26211C] text-[#8A7B6C] cursor-default border border-[#EDE6D6]/10"
+                            : "bg-[#B85C38] hover:bg-[#D97C54] text-[#EDE6D6] shadow-sm active:scale-95"
                         }`}
                       >
                         {addingSongId === song.id ? (
-                          <SpinnerGap size={14} className="animate-spin" />
+                          <SpinnerGap size={12} className="animate-spin" />
                         ) : isAdded ? (
-                          "Đã thêm"
+                          "Đã ghi"
                         ) : (
-                          "Thêm"
+                          "Ghi nhạc"
                         )}
                       </button>
                     </div>

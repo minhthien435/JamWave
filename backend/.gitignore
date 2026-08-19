@@ -3,3 +3,5 @@ node_modules
 .env
 
 /generated/prisma
+# File uploads chạy lúc runtime (bìa playlist, avatar) — không commit
+/uploads

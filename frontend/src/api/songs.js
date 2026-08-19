@@ -1,4 +1,5 @@
 import apiClient from "./client";
+import { downloadWithAuth } from "./download";
 
 // Lấy danh sách bài hát (hỗ trợ tìm kiếm + lọc + phân trang)
 // Trả về: { songs, total, limit, offset }
@@ -39,4 +40,9 @@ export const fetchMoodSongs = async (query, limit = 30) => {
 export const fetchRandomSongs = async (limit = 20) => {
   const response = await apiClient.get("/songs/random", { params: { limit } });
   return response.data;
+};
+
+// Tải bài hát về máy (proxy qua backend né CORS)
+export const downloadSong = async (songId, fallbackName = "bai-hat.mp3") => {
+  await downloadWithAuth(`${apiClient.defaults.baseURL}/songs/${songId}/download`, fallbackName);
 };
