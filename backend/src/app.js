@@ -30,12 +30,43 @@ const app = express();
 app.set('trust proxy', 1);
 
 
-// CORS: chỉ cho phép origin được cấu hình (CLIENT_ORIGIN). Không set = mở tất cả (dev)
-const allowedOrigins = process.env.CLIENT_ORIGIN
-    ? process.env.CLIENT_ORIGIN.split(',').map((s) => s.trim()).filter(Boolean)
-    : '*';
+// CORS: Cho phép origins cấu hình từ CLIENT_ORIGIN / CORS_ORIGIN, tự động loại bỏ dấu / cuối và hỗ trợ *.vercel.app
+const rawOrigins = `${process.env.CLIENT_ORIGIN || ""} ${process.env.CORS_ORIGIN || ""}`
+  .split(/[,\s]+/)
+  .map((s) => s.trim().replace(/\/+$/, ""))
+  .filter(Boolean);
 
-app.use(cors({ origin: allowedOrigins }));
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Cho phép request không có origin (mobile, Postman, server-to-server)
+    if (!origin) return callback(null, true);
+
+    const cleanOrigin = origin.trim().replace(/\/+$/, "");
+
+    // Nếu không cấu hình origin -> cho phép tất cả
+    if (rawOrigins.length === 0) return callback(null, true);
+
+    const isAllowed =
+      rawOrigins.includes(cleanOrigin) ||
+      rawOrigins.includes("*") ||
+      cleanOrigin.endsWith(".vercel.app") ||
+      cleanOrigin.includes("localhost") ||
+      cleanOrigin.includes("127.0.0.1");
+
+    if (isAllowed) {
+      callback(null, true);
+    } else {
+      console.warn(`[CORS Blocked] Origin: ${origin}`);
+      callback(new Error(`Origin ${origin} not allowed by CORS`));
+    }
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
+};
+
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
 
 app.use(express.json());
 
