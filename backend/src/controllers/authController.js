@@ -7,11 +7,11 @@ const { sendVerificationEmail, createVerificationToken, hasEmailConfig } = requi
 const { verifyGoogleIdToken } = require("../services/googleAuthService");
 
 const JWT_SECRET = process.env.JWT_SECRET;
-const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || "").trim().toLowerCase();
-
-// Email trong ADMIN_EMAIL (.env) sẽ có quyền quản trị viên
+// Email trong ADMIN_EMAIL (.env) sẽ có quyền quản trị viên (đọc động theo biến môi trường)
 const promoteIfAdmin = (email) => {
-  return ADMIN_EMAIL && email === ADMIN_EMAIL ? "ADMIN" : "USER";
+  const adminEmail = (process.env.ADMIN_EMAIL || "").trim().toLowerCase();
+  const targetEmail = String(email || "").trim().toLowerCase();
+  return adminEmail && targetEmail === adminEmail ? "ADMIN" : "USER";
 };
 
 const signToken = (user) =>
@@ -296,6 +296,11 @@ const getMe = async (req, res) => {
 
     if (!user) {
       return res.status(404).json({ error: "Không tìm thấy người dùng" });
+    }
+
+    if (promoteIfAdmin(user.email) === "ADMIN" && user.role !== "ADMIN") {
+      await prisma.user.update({ where: { id: user.id }, data: { role: "ADMIN" } });
+      user.role = "ADMIN";
     }
 
     return res.status(200).json({ user });
