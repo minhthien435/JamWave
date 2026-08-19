@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { NavLink, useNavigate } from "react-router-dom";
 import {
   House,
@@ -107,24 +108,24 @@ export default function Sidebar() {
               to={to}
               end={end}
               className={({ isActive }) =>
-                `relative flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-150 ${
+                `flex items-center gap-3 px-3 py-2 rounded-xl transition-colors duration-200 ${
                   isActive
-                    ? "text-[#EDE6D6] bg-[#2E2721] font-bold border border-[#D97C54]/30 shadow-sm"
+                    ? "text-[#EDE6D6] bg-[#2E2721] font-semibold border border-[#EDE6D6]/15 shadow-sm"
                     : "text-[#A39282] hover:text-[#EDE6D6] hover:bg-[#26211C]"
                 }`
               }
             >
               {({ isActive }) => (
                 <>
-                  {isActive && (
-                    <div className="absolute left-0 top-2 bottom-2 w-1 bg-[#D97C54] rounded-r-full shadow-[0_0_8px_#D97C54]" />
-                  )}
                   <Icon
                     size={17}
                     weight={isActive ? "fill" : "regular"}
-                    className={isActive ? "text-[#D97C54]" : "text-[#8A7B6C]"}
+                    className={`transition-colors duration-200 ${isActive ? "text-[#D97C54]" : "text-[#8A7B6C]"}`}
                   />
-                  <span className="truncate">{label}</span>
+                  <span className="truncate flex-1">{label}</span>
+                  {isActive && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#D97C54]" />
+                  )}
                 </>
               )}
             </NavLink>
@@ -144,7 +145,7 @@ export default function Sidebar() {
           {user && (
             <button
               onClick={() => setShowCreateModal(true)}
-              className="text-[#A39282] hover:text-[#D97C54] p-1 rounded-lg hover:bg-[#2E2721] transition-all active:scale-95"
+              className="text-[#A39282] hover:text-[#D97C54] p-1 rounded-lg hover:bg-[#2E2721] transition-colors duration-150 active:scale-95"
               title="Tạo playlist mới"
             >
               <Plus size={16} weight="bold" />
@@ -159,7 +160,7 @@ export default function Sidebar() {
             </p>
             <button
               onClick={() => navigate("/login")}
-              className="font-mono text-[11px] font-bold uppercase tracking-wider px-4 py-2 rounded-lg bg-[#B85C38] hover:bg-[#D97C54] text-[#EDE6D6] transition-all shadow-md active:scale-95"
+              className="font-mono text-[11px] font-bold uppercase tracking-wider px-4 py-2 rounded-lg bg-[#B85C38] hover:bg-[#D97C54] text-[#EDE6D6] transition-colors duration-150 shadow-md active:scale-95"
             >
               Đăng nhập
             </button>
@@ -169,14 +170,14 @@ export default function Sidebar() {
             <NavLink
               to="/likes"
               className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-150 ${
+                `flex items-center gap-3 px-3 py-2 rounded-xl transition-colors duration-200 ${
                   isActive
-                    ? "text-[#EDE6D6] bg-[#2E2721] font-bold border border-[#D97C54]/30"
+                    ? "text-[#EDE6D6] bg-[#2E2721] font-semibold border border-[#EDE6D6]/15 shadow-sm"
                     : "text-[#A39282] hover:text-[#EDE6D6] hover:bg-[#26211C]"
                 }`
               }
             >
-              {() => (
+              {({ isActive }) => (
                 <>
                   <div className="w-7 h-7 rounded-lg bg-[#B85C38]/20 border border-[#B85C38]/40 flex items-center justify-center text-[#D97C54] flex-shrink-0">
                     <Heart size={14} weight="fill" />
@@ -187,6 +188,7 @@ export default function Sidebar() {
                       {likedCount}
                     </span>
                   )}
+                  {isActive && <span className="w-1.5 h-1.5 rounded-full bg-[#D97C54] ml-1" />}
                 </>
               )}
             </NavLink>
@@ -201,24 +203,30 @@ export default function Sidebar() {
                   key={playlist.id}
                   to={`/playlist/${playlist.id}`}
                   className={({ isActive }) =>
-                    `flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-150 ${
+                    `flex items-center gap-3 px-3 py-2 rounded-xl transition-colors duration-200 ${
                       isActive
-                        ? "text-[#EDE6D6] bg-[#2E2721] font-bold border border-[#D97C54]/30"
+                        ? "text-[#EDE6D6] bg-[#2E2721] font-semibold border border-[#EDE6D6]/15 shadow-sm"
                         : "text-[#A39282] hover:text-[#EDE6D6] hover:bg-[#26211C]"
                     }`
                   }
                 >
-                  <div className="w-7 h-7 rounded-lg bg-[#26211C] border border-[#EDE6D6]/10 flex items-center justify-center text-[#8A7B6C] flex-shrink-0 overflow-hidden">
-                    {playlist.coverImg ? (
-                      <img src={playlist.coverImg} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                      <MusicNotes size={14} weight="duotone" />
-                    )}
-                  </div>
-                  <span className="truncate flex-1 font-sans text-xs">{playlist.title}</span>
-                  <span className="text-[10px] font-mono text-[#8A7B6C]">
-                    {playlist.songCount}
-                  </span>
+                  {({ isActive }) => (
+                    <>
+                      <div className="w-7 h-7 rounded-lg bg-[#2E2721] border border-[#EDE6D6]/15 flex items-center justify-center text-[#A39282] overflow-hidden flex-shrink-0">
+                        {playlist.coverImg ? (
+                          <img
+                            src={playlist.coverImg}
+                            alt={playlist.title}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <MusicNotes size={13} />
+                        )}
+                      </div>
+                      <span className="truncate flex-1 font-sans text-xs">{playlist.title}</span>
+                      {isActive && <span className="w-1.5 h-1.5 rounded-full bg-[#D97C54] ml-1" />}
+                    </>
+                  )}
                 </NavLink>
               ))
             )}
@@ -233,58 +241,60 @@ export default function Sidebar() {
       </div>
 
       {/* Modal Tạo Playlist */}
-      {showCreateModal && (
-        <div
-          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 transition-all duration-200"
-          onClick={() => setShowCreateModal(false)}
-        >
+      {showCreateModal &&
+        createPortal(
           <div
-            className="indie-panel rounded-2xl p-6 w-full max-w-sm shadow-2xl border border-[#EDE6D6]/20"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 z-[100] bg-black/25 backdrop-blur-sm flex items-start justify-center p-4 pt-20 sm:pt-28 pb-32 transition-all duration-200 animate-fade-in font-sans"
+            onClick={() => setShowCreateModal(false)}
           >
-            <div className="flex items-center justify-between mb-4 border-b border-dashed-indie pb-3">
-              <h3 className="font-serif italic font-bold text-lg text-[#EDE6D6]">Tạo Playlist Mới</h3>
-              <button
-                onClick={() => setShowCreateModal(false)}
-                className="text-[#A39282] hover:text-[#EDE6D6] p-1.5 rounded-lg hover:bg-[#2E2721] transition-colors"
-              >
-                <X size={18} />
-              </button>
+            <div
+              className="indie-panel rounded-2xl p-6 w-full max-w-sm shadow-2xl border border-[#EDE6D6]/20"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-4 border-b border-dashed-indie pb-3">
+                <h3 className="font-serif italic font-bold text-lg text-[#EDE6D6]">Tạo Playlist Mới</h3>
+                <button
+                  onClick={() => setShowCreateModal(false)}
+                  className="text-[#A39282] hover:text-[#EDE6D6] p-1.5 rounded-lg hover:bg-[#2E2721] transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {createError && (
+                <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-3.5 py-2.5 mb-4">
+                  {createError}
+                </p>
+              )}
+
+              <form onSubmit={handleCreatePlaylist}>
+                <input
+                  type="text"
+                  value={newTitle}
+                  onChange={(e) => setNewTitle(e.target.value)}
+                  placeholder="Đặt tên playlist..."
+                  autoFocus
+                  className="w-full bg-[#26211C] border border-[#EDE6D6]/20 text-[#EDE6D6] px-4 py-3 rounded-xl outline-none focus:border-[#D97C54] transition-all font-serif text-sm placeholder-[#8A7B6C] mb-5"
+                />
+                <button
+                  type="submit"
+                  disabled={creating}
+                  className="w-full bg-[#B85C38] hover:bg-[#D97C54] disabled:opacity-50 text-[#EDE6D6] font-mono text-xs font-bold uppercase tracking-wider py-3 rounded-xl transition-all shadow-md active:scale-95 flex items-center justify-center gap-2"
+                >
+                  {creating ? (
+                    <>
+                      <SpinnerGap size={16} className="animate-spin" />
+                      <span>Đang tạo...</span>
+                    </>
+                  ) : (
+                    "Tạo Playlist"
+                  )}
+                </button>
+              </form>
             </div>
-
-            {createError && (
-              <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-3.5 py-2.5 mb-4">
-                {createError}
-              </p>
-            )}
-
-            <form onSubmit={handleCreatePlaylist}>
-              <input
-                type="text"
-                value={newTitle}
-                onChange={(e) => setNewTitle(e.target.value)}
-                placeholder="Đặt tên playlist..."
-                autoFocus
-                className="w-full bg-[#26211C] border border-[#EDE6D6]/20 text-[#EDE6D6] px-4 py-3 rounded-xl outline-none focus:border-[#D97C54] transition-all font-serif text-sm placeholder-[#8A7B6C] mb-5"
-              />
-              <button
-                type="submit"
-                disabled={creating}
-                className="w-full bg-[#B85C38] hover:bg-[#D97C54] disabled:opacity-50 text-[#EDE6D6] font-mono text-xs font-bold uppercase tracking-wider py-3 rounded-xl transition-all shadow-md active:scale-95 flex items-center justify-center gap-2"
-              >
-                {creating ? (
-                  <>
-                    <SpinnerGap size={16} className="animate-spin" />
-                    <span>Đang tạo...</span>
-                  </>
-                ) : (
-                  "Tạo Playlist"
-                )}
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
     </aside>
   );
 }

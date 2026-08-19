@@ -10,7 +10,7 @@ export default function RequireAuth({ children }) {
 
   if (!ready) {
     return (
-      <div className="flex items-center justify-center py-20 text-violet-400">
+      <div className="flex items-center justify-center py-20 text-[#D97C54]">
         <SpinnerGap size={28} className="animate-spin" />
       </div>
     );

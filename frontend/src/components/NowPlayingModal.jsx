@@ -15,6 +15,7 @@ import {
   CalendarBlank,
   Tag,
   CheckCircle,
+  CassetteTape,
 } from "@phosphor-icons/react";
 import { usePlayerStore } from "../usePlayerStore";
 import { getAudioElement } from "../audioElement";
@@ -48,7 +49,7 @@ export default function NowPlayingModal({ currentSong, onClose }) {
   const canvasRef = useRef(null);
   const rafRef = useRef(null);
 
-  // Visualizer: animation mô phỏng mượt mà (không dùng WebAudio tránh CORS issue)
+  // Visualizer: animation mô phỏng mượt mà với tông màu Rust & Gold
   useEffect(() => {
     const audio = getAudioElement();
     const onTime = () => {
@@ -67,7 +68,7 @@ export default function NowPlayingModal({ currentSong, onClose }) {
     let ctx2d = null;
     if (canvas) {
       ctx2d = canvas.getContext("2d");
-      const bars = 48;
+      const bars = 44;
       const draw = () => {
         rafRef.current = requestAnimationFrame(draw);
         if (!canvas || !ctx2d) return;
@@ -84,8 +85,9 @@ export default function NowPlayingModal({ currentSong, onClose }) {
         const playing = usePlayerStore.getState().isPlaying;
         const t = audio?.currentTime || 0;
         const grad = ctx2d.createLinearGradient(0, 0, 0, h);
-        grad.addColorStop(0, "#8b5cf6");
-        grad.addColorStop(1, "rgba(124, 58, 237, 0.15)");
+        grad.addColorStop(0, "#D97C54");
+        grad.addColorStop(0.5, "#E0B35C");
+        grad.addColorStop(1, "rgba(184, 92, 56, 0.1)");
         ctx2d.fillStyle = grad;
 
         const bw = (w / bars) * 0.55;
@@ -135,13 +137,13 @@ export default function NowPlayingModal({ currentSong, onClose }) {
       const songs = data.songs || [];
       if (songs.length > 0) {
         setQueue([currentSong, ...songs]);
-        setRadioMsg(`Đã tạo đài với ${songs.length} bài tương tự!`);
+        setRadioMsg(`Đã thêm ${songs.length} bài tương tự vào hàng phát!`);
         setTimeout(() => setRadioMsg(""), 3500);
       } else {
         setRadioMsg("Không tìm thấy bài hát tương tự phù hợp.");
       }
     } catch {
-      setRadioMsg("Không thể tạo đài lúc này.");
+      setRadioMsg("Không thể tạo danh sách lúc này.");
     } finally {
       setRadioLoading(false);
     }
@@ -151,80 +153,93 @@ export default function NowPlayingModal({ currentSong, onClose }) {
 
   const modalContent = (
     <div
-      className="fixed inset-0 z-[9999] bg-black/85 flex items-center justify-center p-4 sm:p-6 select-none overflow-y-auto"
+      className="fixed inset-0 z-[9999] bg-black/85 backdrop-blur-md flex items-center justify-center p-4 select-none overflow-hidden font-sans"
       onClick={onClose}
     >
       <div
-        className="relative bg-[#14141c] rounded-3xl border border-white/10 shadow-2xl w-full max-w-lg flex flex-col items-center gap-4 sm:gap-5 p-6 sm:p-8 max-h-[92vh] overflow-y-auto"
+        className="relative indie-panel rounded-3xl border-dashed-indie shadow-2xl w-full max-w-md flex flex-col items-center gap-3 sm:gap-4 p-5 sm:p-6 overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Nút đóng */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-zinc-400 hover:text-white p-2 rounded-full hover:bg-white/10 transition-colors z-10"
-          title="Đóng"
+          className="absolute top-4 right-4 text-[#A39282] hover:text-[#EDE6D6] p-2 rounded-xl hover:bg-[#2E2721] transition-colors z-10"
+          title="Thu nhỏ"
         >
-          <X size={20} />
+          <X size={18} />
         </button>
 
+        {/* Brand Stamp */}
+        <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[#B85C38]/15 border border-[#B85C38]/30 text-[#D97C54] font-mono text-[10px] uppercase font-bold tracking-[0.18em]">
+          <CassetteTape size={13} weight="duotone" />
+          JamWave • ĐANG PHÁT
+        </div>
+
         {/* Album art */}
-        <div className="relative mt-2">
-          <img
-            src={currentSong.albumCover}
-            alt={currentSong.title}
-            className="w-44 h-44 sm:w-52 sm:h-52 rounded-2xl object-cover shadow-2xl border border-white/10"
-          />
+        <div className="relative">
+          <div className="w-36 h-36 sm:w-44 sm:h-44 rounded-2xl overflow-hidden shadow-2xl border border-[#EDE6D6]/15 bg-[#181512]">
+            <img
+              src={currentSong.albumCover}
+              alt={currentSong.title}
+              className="w-full h-full object-cover"
+            />
+          </div>
         </div>
 
         {/* Thông tin bài hát */}
-        <div className="text-center space-y-1 w-full mt-1">
-          <div className="flex items-center justify-center gap-2 min-w-0 px-4">
-            <h3 className="text-lg sm:text-xl font-black text-white truncate">{currentSong.title}</h3>
+        <div className="text-center space-y-0.5 w-full">
+          <div className="flex items-center justify-center gap-2 min-w-0 px-2">
+            <h3 className="font-serif italic text-lg sm:text-xl font-bold text-[#EDE6D6] truncate">
+              {currentSong.title}
+            </h3>
             <SourceBadge source={currentSong.source} />
           </div>
           <Link
-            to={`/artist/${encodeURIComponent(currentSong.artist)}`}  
+            to={`/artist/${encodeURIComponent(currentSong.artist)}`}
             onClick={onClose}
-            className="text-xs sm:text-sm font-semibold text-zinc-400 hover:text-violet-300 transition-colors inline-block"
+            className="font-mono text-xs text-[#A39282] hover:text-[#D97C54] transition-colors inline-block"
           >
             {currentSong.artist}
           </Link>
-          <div className="flex items-center justify-center gap-2 flex-wrap text-[11px] font-medium text-zinc-400 mt-1">
+          <div className="flex items-center justify-center gap-1.5 flex-wrap font-mono text-[10px] text-[#A39282] mt-1">
             {currentSong.releaseYear ? (
-              <span className="flex items-center gap-1 bg-white/5 border border-white/10 px-2.5 py-0.5 rounded-full">
-                <CalendarBlank size={12} /> {currentSong.releaseYear}
+              <span className="flex items-center gap-1 bg-[#26211C] border border-[#EDE6D6]/10 px-2 py-0.5 rounded-lg text-[#EDE6D6]">
+                <CalendarBlank size={11} className="text-[#E0B35C]" /> {currentSong.releaseYear}
               </span>
             ) : null}
             {genreText ? (
-              <span className="flex items-center gap-1 bg-white/5 border border-white/10 px-2.5 py-0.5 rounded-full">
-                <Tag size={12} /> {genreText}
+              <span className="flex items-center gap-1 bg-[#26211C] border border-[#EDE6D6]/10 px-2 py-0.5 rounded-lg text-[#EDE6D6]">
+                <Tag size={11} className="text-[#D97C54]" /> {genreText}
               </span>
             ) : null}
           </div>
         </div>
 
-        {/* Visualizer */}
-        <canvas ref={canvasRef} className="w-full max-w-md h-12 sm:h-14 my-1" />
+        {/* Visualizer sóng âm analog */}
+        <div className="w-full max-w-sm bg-[#181512] rounded-xl p-1 border border-[#EDE6D6]/10">
+          <canvas ref={canvasRef} className="w-full h-8 sm:h-9" />
+        </div>
 
         {/* Thanh tiến trình */}
-        <div className="w-full max-w-md flex items-center gap-2.5 text-xs text-zinc-400 font-medium tabular-nums">
-          <span className="w-9 text-right text-[11px]">{formatTime(currentTime)}</span>
+        <div className="w-full max-w-sm flex items-center gap-2 font-mono text-[11px] text-[#A39282] tabular-nums">
+          <span className="w-8 text-right text-[10px] text-[#A39282]">{formatTime(currentTime)}</span>
           <input
             type="range"
             min={0}
             max={duration || 100}
             value={currentTime}
             onChange={handleSeek}
-            className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-violet-500 hover:accent-violet-400 transition-all"
+            className="w-full h-1 bg-[#26211C] rounded-lg appearance-none cursor-pointer accent-[#D97C54] hover:accent-[#B85C38] transition-all"
           />
-          <span className="w-9 text-[11px]">{formatTime(duration)}</span>
+          <span className="w-8 text-[10px] text-[#A39282]">{formatTime(duration)}</span>
         </div>
 
-        {/* Điều khiển */}
+        {/* Nút Điều khiển cơ học */}
         <div className="flex items-center gap-5 sm:gap-6 mt-1">
           <button
             onClick={toggleShuffle}
             className={`transition-all duration-150 active:scale-90 ${
-              shuffle ? "text-violet-400" : "text-zinc-400 hover:text-white"
+              shuffle ? "text-[#D97C54]" : "text-[#8A7B6C] hover:text-[#EDE6D6]"
             }`}
             title={shuffle ? "Tắt phát ngẫu nhiên" : "Phát ngẫu nhiên"}
           >
@@ -232,14 +247,15 @@ export default function NowPlayingModal({ currentSong, onClose }) {
           </button>
           <button
             onClick={playPrevious}
-            className="text-zinc-400 hover:text-white transition-all active:scale-90"
+            className="text-[#A39282] hover:text-[#EDE6D6] transition-all active:scale-90"
             title="Bài trước"
           >
             <SkipBack size={22} weight="fill" />
           </button>
           <button
             onClick={togglePlay}
-            className="w-12 h-12 rounded-full bg-violet-600 hover:bg-violet-500 text-white flex items-center justify-center hover:scale-105 transition-all active:scale-95 shadow-md shadow-violet-950/60"
+            className="w-13 h-13 sm:w-14 sm:h-14 rounded-2xl bg-[#B85C38] hover:bg-[#D97C54] text-[#EDE6D6] flex items-center justify-center transition-all active:scale-95 shadow-md border border-[#EDE6D6]/20"
+            title={isPlaying ? "Tạm dừng" : "Phát"}
           >
             {isPlaying ? (
               <Pause size={22} weight="fill" />
@@ -249,7 +265,7 @@ export default function NowPlayingModal({ currentSong, onClose }) {
           </button>
           <button
             onClick={playNext}
-            className="text-zinc-400 hover:text-white transition-all active:scale-90"
+            className="text-[#A39282] hover:text-[#EDE6D6] transition-all active:scale-90"
             title="Bài tiếp theo"
           >
             <SkipForward size={22} weight="fill" />
@@ -257,7 +273,7 @@ export default function NowPlayingModal({ currentSong, onClose }) {
           <button
             onClick={cycleRepeat}
             className={`transition-all duration-150 active:scale-90 ${
-              repeatMode !== "off" ? "text-violet-400" : "text-zinc-400 hover:text-white"
+              repeatMode !== "off" ? "text-[#D97C54]" : "text-[#8A7B6C] hover:text-[#EDE6D6]"
             }`}
             title={repeatMode === "one" ? "Lặp 1 bài" : repeatMode === "all" ? "Lặp danh sách" : "Tắt lặp"}
           >
@@ -269,22 +285,22 @@ export default function NowPlayingModal({ currentSong, onClose }) {
           </button>
         </div>
 
-        {/* Radio */}
+        {/* Nút Tạo đài tương tự */}
         <div className="flex flex-col items-center gap-1.5 mt-1">
           <button
             onClick={handleRadio}
             disabled={radioLoading}
-            className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 hover:bg-white/15 text-white font-semibold text-xs transition-all active:scale-95 disabled:opacity-60 border border-white/10"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#26211C] hover:bg-[#2E2721] text-[#EDE6D6] font-mono text-xs font-bold uppercase tracking-wider transition-all active:scale-95 disabled:opacity-60 border border-[#EDE6D6]/15 shadow-sm"
           >
             {radioLoading ? (
-              <SpinnerGap size={14} className="animate-spin text-violet-400" />
+              <SpinnerGap size={14} className="animate-spin text-[#D97C54]" />
             ) : (
-              <Broadcast size={14} weight="duotone" />
+              <Broadcast size={14} weight="duotone" className="text-[#D97C54]" />
             )}
             Tạo đài tương tự
           </button>
           {radioMsg && (
-            <p className="text-[11px] font-medium text-emerald-400 flex items-center gap-1">
+            <p className="font-mono text-xs text-[#76876F] flex items-center gap-1">
               <CheckCircle size={13} weight="fill" /> {radioMsg}
             </p>
           )}

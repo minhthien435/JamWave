@@ -3,259 +3,219 @@
 @tailwind utilities;
 
 @layer base {
-  /* Sleek Minimal Scrollbar */
+  :root {
+    --paper: #EDE6D6;
+    --ink: #2B2620;
+    --rust: #B85C38;
+    --moss: #5C6B57;
+    --taupe: #8A7B6C;
+    --mustard: #D4A24C;
+    --card: #F4EFE4;
+
+    /* Night Tape variant (Default dark mode for ambient warmth) */
+    --paper-dark: #181512;
+    --ink-dark: #EDE6D6;
+    --card-dark: #221D18;
+    --card-hover-dark: #2A241F;
+    --rust-dark: #D97C54;
+    --moss-dark: #76876F;
+    --taupe-dark: #A39282;
+    --mustard-dark: #E0B35C;
+    --border-dark: rgba(237, 230, 214, 0.12);
+  }
+
+  /* Retro Paper Scrollbar */
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
   }
 
   ::-webkit-scrollbar-track {
-    background: transparent;
+    background: #181512;
   }
 
   ::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.12);
-    border-radius: 9999px;
-    transition: background 0.2s ease;
+    background: #453b32;
+    border-radius: 2px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: rgba(124, 58, 237, 0.6);
+    background: #D97C54;
   }
 
-  /* Firefox Scrollbar */
   * {
     scrollbar-width: thin;
-    scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+    scrollbar-color: #453b32 transparent;
   }
 
   body {
-    @apply bg-[#0d0d12] text-zinc-100 antialiased select-none overflow-hidden font-sans;
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    background-color: #181512;
+    color: #EDE6D6;
+    font-family: 'Karla', system-ui, sans-serif;
+    user-select: none;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
   }
 
-  .tabular-nums {
-    font-variant-numeric: tabular-nums;
+  .font-serif {
+    font-family: 'Fraunces', Georgia, serif;
+  }
+
+  .font-sans {
+    font-family: 'Karla', system-ui, sans-serif;
+  }
+
+  .font-mono {
+    font-family: 'Courier Prime', monospace;
   }
 }
 
 @layer utilities {
-  /* Refined Glassmorphism Styles */
-  .glass-panel {
-    background: rgba(20, 20, 28, 0.7);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  /* Film grain overlay */
+  .film-grain {
+    position: relative;
+  }
+  .film-grain::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 99;
+    opacity: 0.055;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
   }
 
-  .glass-card {
-    background: rgba(26, 26, 36, 0.45);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+  /* Indie Zine Panel */
+  .indie-panel {
+    background: #201A16;
+    border: 1px solid rgba(237, 230, 214, 0.12);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  }
+
+  .indie-card {
+    background: #26211C;
+    border: 1px solid rgba(237, 230, 214, 0.1);
     transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   }
-
-  .glass-card:hover {
-    background: rgba(36, 36, 50, 0.65);
-    border-color: rgba(124, 58, 237, 0.4);
-    transform: translateY(-3px);
-    box-shadow: 0 12px 28px -8px rgba(0, 0, 0, 0.6), 0 0 20px -4px rgba(124, 58, 237, 0.25);
+  .indie-card:hover {
+    background: #2E2721;
+    border-color: rgba(217, 124, 84, 0.4);
+    transform: translateY(-2px);
   }
 
-  .glass-header {
-    background: rgba(13, 13, 18, 0.85);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  @keyframes spinSlow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
   }
 
-  .glass-player {
-    background: rgba(18, 18, 26, 0.92);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8), 0 0 25px rgba(124, 58, 237, 0.15);
+  @keyframes pulseGlow {
+    0%, 100% { opacity: 0.18; transform: scale(1); }
+    50% { opacity: 0.32; transform: scale(1.08); }
   }
 
-  .glass-chat {
-    background: rgba(18, 18, 26, 0.96);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85), 0 0 25px rgba(124, 58, 237, 0.2);
+  .animate-spin-slow {
+    animation: spinSlow 18s linear infinite;
   }
 
-  /* Single Violet Accent Glow */
-  .neon-glow-violet {
-    box-shadow: 0 0 24px -2px rgba(124, 58, 237, 0.5);
+  .animate-pulse-glow {
+    animation: pulseGlow 7s ease-in-out infinite;
+  }
+  .indie-card:hover {
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.6);
   }
 
-  .text-gradient-primary {
-    background: linear-gradient(135deg, #ffffff 30%, #c4b5fd 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+  /* Polaroid Craft Frame */
+  .polaroid-frame {
+    background: #28221D;
+    padding: 8px 8px 30px 8px;
+    border: 1px solid rgba(237, 230, 214, 0.14);
+    box-shadow: 0 12px 28px -6px rgba(0, 0, 0, 0.65);
+    transition: transform 0.3s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.3s ease;
   }
 
-  .text-gradient-accent {
-    background: linear-gradient(135deg, #ddd6fe 0%, #a78bfa 60%, #7c3aed 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-}
-
-/* Animations Keyframes */
-@keyframes pulseGlow {
-
-  0%,
-  100% {
-    opacity: 0.4;
-    transform: scale(1);
+  .polaroid-frame:hover {
+    transform: translateY(-4px) rotate(0deg) scale(1.02);
+    box-shadow: 0 18px 36px -8px rgba(0, 0, 0, 0.75);
   }
 
-  50% {
-    opacity: 0.7;
-    transform: scale(1.08);
-  }
-}
-
-@keyframes equalizerBar {
-
-  0%,
-  100% {
-    height: 4px;
+  /* Washi Tape Ribbon */
+  .washi-tape {
+    background: rgba(224, 179, 92, 0.75);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(1px);
   }
 
-  50% {
-    height: 16px;
-  }
-}
-
-@keyframes floatSlow {
-
-  0%,
-  100% {
-    transform: translateY(0px);
+  /* Ticket Stub Perforation */
+  .ticket-row {
+    position: relative;
+    background: #221D18;
+    border: 1px dashed rgba(237, 230, 214, 0.16);
+    transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1), background 0.2s ease;
   }
 
-  50% {
-    transform: translateY(-8px);
+  .ticket-row:hover {
+    background: #2A241E;
+    transform: translateX(4px) rotate(-0.25deg);
+    border-color: rgba(217, 124, 84, 0.45);
+  }
+
+  /* Cassette Player Bar */
+  .cassette-player {
+    background: #1C1714;
+    border-top: 2px solid #D97C54;
+    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.7);
+  }
+
+  /* Typewriter Stamped Badge */
+  .typewriter-badge {
+    font-family: 'Courier Prime', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  /* Dashed Border Utility */
+  .border-dashed-indie {
+    border-style: dashed;
+    border-color: rgba(237, 230, 214, 0.16);
   }
 }
 
-.animate-pulse-glow {
-  animation: pulseGlow 6s ease-in-out infinite;
+/* Continuous Cassette Reel Rotation */
+@keyframes spinTape {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
-.animate-float-slow {
-  animation: floatSlow 4s ease-in-out infinite;
+.reel-spinning {
+  animation: spinTape 3s linear infinite;
 }
 
-.equalizer-bar-1 {
-  animation: equalizerBar 0.8s ease-in-out infinite;
+.reel-spinning.paused {
+  animation-play-state: paused;
 }
 
-.equalizer-bar-2 {
-  animation: equalizerBar 1.2s ease-in-out infinite 0.2s;
-}
-
-.equalizer-bar-3 {
-  animation: equalizerBar 0.9s ease-in-out infinite 0.4s;
-}
-
-.equalizer-bar-4 {
-  animation: equalizerBar 1.1s ease-in-out infinite 0.6s;
-}
-
-/* Auth Motion Background Animations */
-@keyframes gradientShift {
+/* Subtle Polaroid Shake / Settle on load */
+@keyframes polaroidSettle {
   0% {
-    background-position: 0% 50%;
+    transform: scale(0.96) rotate(-1deg);
+    opacity: 0;
   }
-
-  50% {
-    background-position: 100% 50%;
+  60% {
+    transform: scale(1.02) rotate(0.8deg);
+    opacity: 1;
   }
-
   100% {
-    background-position: 0% 50%;
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
   }
 }
 
-@keyframes particleFloat {
-  0% {
-    transform: translateY(0px) scale(0.8);
-    opacity: 0.2;
-  }
-
-  50% {
-    transform: translateY(-120px) scale(1.2);
-    opacity: 0.8;
-  }
-
-  100% {
-    transform: translateY(-240px) scale(0.8);
-    opacity: 0.1;
-  }
-}
-
-@keyframes albumFloat {
-
-  0%,
-  100% {
-    transform: translateY(0px) rotate(0deg) scale(1);
-  }
-
-  50% {
-    transform: translateY(-20px) rotate(4deg) scale(1.05);
-  }
-}
-
-.animate-gradient-shift {
-  background-size: 200% 200%;
-  animation: gradientShift 16s ease infinite;
-}
-
-.animate-particle-1 {
-  animation: particleFloat 7s ease-in-out infinite;
-}
-
-.animate-particle-2 {
-  animation: particleFloat 10s ease-in-out infinite 2s;
-}
-
-.animate-particle-3 {
-  animation: particleFloat 8s ease-in-out infinite 4s;
-}
-
-.animate-album-float-1 {
-  animation: albumFloat 8s ease-in-out infinite;
-}
-
-.animate-album-float-2 {
-  animation: albumFloat 10s ease-in-out infinite 3s;
-}
-
-/* Horizontal Wave Flow Animations */
-@keyframes waveFlow {
-  0% {
-    transform: translateX(0) scaleY(1);
-  }
-
-  50% {
-    transform: translateX(-50px) scaleY(1.15);
-  }
-
-  100% {
-    transform: translateX(0) scaleY(1);
-  }
-}
-
-.animate-wave-flow {
-  animation: waveFlow 10s ease-in-out infinite;
-}
-
-.animate-wave-fast {
-  animation: waveFlow 4s ease-in-out infinite;
+.animate-polaroid-settle {
+  animation: polaroidSettle 0.5s cubic-bezier(0.2, 0, 0, 1) forwards;
 }

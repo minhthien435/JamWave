@@ -214,7 +214,7 @@ export default function PlayerBar() {
   const isLiked = currentSong ? likedIds.has(currentSong.id) : false;
 
   return (
-    <div className="fixed bottom-3 left-3 right-3 h-20 glass-player rounded-2xl text-white px-5 flex items-center justify-between z-40 select-none border border-white/10 transition-all duration-300">
+    <div className="fixed bottom-3 left-3 right-3 h-20 cassette-player rounded-2xl text-[#EDE6D6] px-5 flex items-center justify-between z-40 select-none border border-[#EDE6D6]/10 transition-all duration-300 font-sans shadow-2xl">
       {/* Audio Element Ẩn */}
       <audio
         ref={audioRef}
@@ -227,33 +227,26 @@ export default function PlayerBar() {
         onError={handleAudioError}
       />
 
-      {/* Thông tin bài hát bên trái */}
+      {/* Thông tin bài hát bên trái: Polaroid Mini Frame & Title */}
       <div className="flex items-center gap-3.5 w-1/4 min-w-0">
         <div className="relative group flex-shrink-0">
-          <img
-            src={currentSong.albumCover}
-            alt={currentSong.title}
-            className={`w-13 h-13 w-[52px] h-[52px] rounded-xl object-cover shadow-md transition-transform duration-200 ${
-              isPlaying ? "scale-102" : ""
-            }`}
-          />
-          {isPlaying && (
-            <div className="absolute inset-0 bg-black/40 rounded-xl flex items-center justify-center gap-1 backdrop-blur-[2px]">
-              <span className="w-1 bg-violet-400 rounded-full equalizer-bar-1" />
-              <span className="w-1 bg-purple-400 rounded-full equalizer-bar-2" />
-              <span className="w-1 bg-violet-300 rounded-full equalizer-bar-3" />
-            </div>
-          )}
+          <div className="w-[50px] h-[50px] p-1 bg-[#28221D] border border-[#EDE6D6]/20 rounded-lg shadow-md">
+            <img
+              src={currentSong.albumCover}
+              alt={currentSong.title}
+              className="w-full h-full rounded object-cover"
+            />
+          </div>
         </div>
 
         <div className="truncate min-w-0">
           <div className="flex items-center gap-2 min-w-0">
-            <p className="font-bold text-sm truncate hover:text-violet-300 transition-colors cursor-pointer text-zinc-100">
+            <p className="font-serif italic font-semibold text-sm truncate hover:text-[#D97C54] transition-colors cursor-pointer text-[#EDE6D6]">
               {currentSong.title}
             </p>
             <SourceBadge source={currentSong.source} />
           </div>
-          <p className="text-xs text-zinc-400 truncate hover:text-zinc-200 transition-colors cursor-pointer mt-0.5 font-medium">
+          <p className="font-mono text-[11px] text-[#A39282] truncate hover:text-[#EDE6D6] transition-colors cursor-pointer mt-0.5">
             {currentSong.artist}
           </p>
         </div>
@@ -262,80 +255,101 @@ export default function PlayerBar() {
         {user && (
           <button
             onClick={handleLike}
-            className="text-zinc-500 hover:text-white transition-colors flex-shrink-0 ml-1 p-1 rounded-full hover:bg-white/10"
+            className="text-[#8A7B6C] hover:text-[#D97C54] transition-colors flex-shrink-0 ml-1 p-1 rounded-lg hover:bg-[#26211C]"
             title={isLiked ? "Bỏ thích" : "Yêu thích"}
           >
             <Heart
-              size={20}
+              size={18}
               weight={isLiked ? "fill" : "regular"}
-              className={isLiked ? "text-rose-500 fill-rose-500 filter drop-shadow-[0_0_8px_rgba(244,63,94,0.4)]" : ""}
+              className={isLiked ? "text-[#D97C54] fill-[#D97C54] filter drop-shadow-[0_0_6px_rgba(217,124,84,0.5)]" : ""}
             />
           </button>
         )}
       </div>
 
-      {/* Nút điều khiển ở giữa & Thanh tiến trình */}
+      {/* Nút điều khiển ở giữa & Bánh răng Cassette xoay tròn */}
       <div className="flex flex-col items-center gap-1.5 w-2/4 max-w-xl">
-        {/* Nút Skip / Play */}
+        {/* Cassette Tape Reel Window & Controls */}
         <div className="flex items-center gap-5">
+          {/* Reel Left */}
+          <div
+            className={`w-5 h-5 rounded-full border border-[#D4A24C]/60 flex items-center justify-center reel-spinning ${
+              !isPlaying ? "paused" : ""
+            }`}
+          >
+            <div className="w-1.5 h-1.5 rounded-full bg-[#D4A24C]" />
+          </div>
+
           {/* Shuffle */}
           <button
             onClick={toggleShuffle}
             className={`transition-all duration-150 active:scale-90 ${
-              shuffle ? "text-violet-400" : "text-zinc-400 hover:text-white"
+              shuffle ? "text-[#D97C54]" : "text-[#8A7B6C] hover:text-[#EDE6D6]"
             }`}
             title={shuffle ? "Tắt phát ngẫu nhiên" : "Phát ngẫu nhiên"}
           >
-            <Shuffle size={18} weight={shuffle ? "bold" : "regular"} />
+            <Shuffle size={16} weight={shuffle ? "bold" : "regular"} />
           </button>
 
+          {/* Skip Back */}
           <button
             onClick={playPrevious}
-            className="text-zinc-400 hover:text-white transition-all duration-150 active:scale-90"
+            className="text-[#A39282] hover:text-[#EDE6D6] transition-all duration-150 active:scale-90"
             title="Bài trước"
           >
-            <SkipBack size={20} weight="fill" />
+            <SkipBack size={19} weight="fill" />
           </button>
 
+          {/* Play / Pause */}
           <button
             onClick={togglePlay}
-            className="w-10 h-10 rounded-full bg-violet-600 hover:bg-violet-500 text-white flex items-center justify-center hover:scale-105 transition-all duration-150 active:scale-95 shadow-md shadow-violet-950/60"
+            className="w-10 h-10 rounded-xl bg-[#B85C38] hover:bg-[#D97C54] text-[#EDE6D6] flex items-center justify-center transition-all duration-150 active:scale-95 shadow-md border border-[#EDE6D6]/20"
             title={isPlaying ? "Tạm dừng" : "Phát"}
           >
             {isPlaying ? (
-              <Pause size={20} weight="fill" />
+              <Pause size={18} weight="fill" />
             ) : (
-              <Play size={20} weight="fill" className="ml-0.5" />
+              <Play size={18} weight="fill" className="ml-0.5" />
             )}
           </button>
 
+          {/* Skip Next */}
           <button
             onClick={playNext}
-            className="text-zinc-400 hover:text-white transition-all duration-150 active:scale-90"
+            className="text-[#A39282] hover:text-[#EDE6D6] transition-all duration-150 active:scale-90"
             title="Bài tiếp theo"
           >
-            <SkipForward size={20} weight="fill" />
+            <SkipForward size={19} weight="fill" />
           </button>
 
           {/* Repeat */}
           <button
             onClick={cycleRepeat}
             className={`transition-all duration-150 active:scale-90 ${
-              repeatMode !== "off" ? "text-violet-400" : "text-zinc-400 hover:text-white"
+              repeatMode !== "off" ? "text-[#D97C54]" : "text-[#8A7B6C] hover:text-[#EDE6D6]"
             }`}
             title={repeatMode === "one" ? "Lặp 1 bài" : repeatMode === "all" ? "Lặp danh sách" : "Tắt lặp"}
           >
             {repeatMode === "one" ? (
-              <RepeatOnce size={18} weight="bold" />
+              <RepeatOnce size={16} weight="bold" />
             ) : (
-              <Repeat size={18} weight={repeatMode === "all" ? "bold" : "regular"} />
+              <Repeat size={16} weight={repeatMode === "all" ? "bold" : "regular"} />
             )}
           </button>
+
+          {/* Reel Right */}
+          <div
+            className={`w-5 h-5 rounded-full border border-[#D4A24C]/60 flex items-center justify-center reel-spinning ${
+              !isPlaying ? "paused" : ""
+            }`}
+          >
+            <div className="w-1.5 h-1.5 rounded-full bg-[#D4A24C]" />
+          </div>
         </div>
 
-        {/* Progress Bar (Tua nhạc) */}
-        <div className="w-full flex items-center gap-3 text-xs text-zinc-400 font-medium tracking-tight">
-          <span className="w-10 text-right text-[11px] text-zinc-400 tabular-nums">
+        {/* Progress Bar (Thanh chỉ băng 3px màu Rust) */}
+        <div className="w-full flex items-center gap-3 text-xs text-[#A39282] font-mono tracking-tight">
+          <span className="w-10 text-right text-[11px] tabular-nums text-[#A39282]">
             {formatTime(currentTime)}
           </span>
           <div className="relative flex-1 flex items-center group">
@@ -345,44 +359,44 @@ export default function PlayerBar() {
               max={duration || 100}
               value={currentTime}
               onChange={handleSeek}
-              className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-violet-500 hover:accent-violet-400 transition-all"
+              className="w-full h-1 bg-[#2E2721] rounded appearance-none cursor-pointer accent-[#D97C54] hover:accent-[#E0B35C] transition-all"
             />
           </div>
-          <span className="w-10 text-[11px] text-zinc-400 tabular-nums">
+          <span className="w-10 text-[11px] tabular-nums text-[#A39282]">
             {formatTime(duration)}
           </span>
         </div>
       </div>
 
       {/* Âm lượng bên phải + Hàng chờ + Now Playing */}
-      <div className="flex items-center justify-end gap-2.5 w-1/4 text-zinc-400 relative">
+      <div className="flex items-center justify-end gap-2.5 w-1/4 text-[#A39282] relative font-mono">
         <button
           onClick={() => setShowNowPlaying((show) => !show)}
-          className={`relative hover:text-white transition-all duration-150 p-2 rounded-xl hover:bg-white/10 active:scale-95 ${
-            showNowPlaying ? "text-violet-400 bg-white/10" : ""
+          className={`relative hover:text-[#EDE6D6] transition-all duration-150 p-2 rounded-xl hover:bg-[#26211C] active:scale-95 ${
+            showNowPlaying ? "text-[#D97C54] bg-[#26211C]" : ""
           }`}
           title="Màn hình phát nhạc"
         >
-          <CornersOut size={19} weight="duotone" />
+          <CornersOut size={18} weight="duotone" />
         </button>
 
         <button
           onClick={() => setQueueOpen((open) => !open)}
-          className={`relative hover:text-white transition-all duration-150 p-2 rounded-xl hover:bg-white/10 active:scale-95 ${
-            queueOpen ? "text-violet-400 bg-white/10" : ""
+          className={`relative hover:text-[#EDE6D6] transition-all duration-150 p-2 rounded-xl hover:bg-[#26211C] active:scale-95 ${
+            queueOpen ? "text-[#D97C54] bg-[#26211C]" : ""
           }`}
           title="Hàng chờ phát"
         >
-          <Queue size={19} weight="duotone" />
+          <Queue size={18} weight="duotone" />
           {queue.length > 0 && (
-            <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-violet-600 text-white text-[9px] font-black tabular-nums flex items-center justify-center shadow-sm">
+            <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-[#B85C38] text-[#EDE6D6] text-[9px] font-mono font-bold tabular-nums flex items-center justify-center shadow-sm">
               {queue.length}
             </span>
           )}
         </button>
 
-        <button onClick={toggleMute} className="hover:text-white transition-colors p-1 rounded-lg hover:bg-white/10">
-          {volume === 0 ? <SpeakerSimpleX size={20} className="text-zinc-500" /> : <SpeakerHigh size={20} />}
+        <button onClick={toggleMute} className="hover:text-[#EDE6D6] transition-colors p-1 rounded-lg hover:bg-[#26211C]">
+          {volume === 0 ? <SpeakerSimpleX size={18} className="text-[#8A7B6C]" /> : <SpeakerHigh size={18} />}
         </button>
 
         <input
@@ -392,30 +406,30 @@ export default function PlayerBar() {
           step={0.01}
           value={volume}
           onChange={handleVolumeChange}
-          className="w-24 h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-violet-500 hover:accent-violet-400 transition-all"
+          className="w-20 h-1 bg-[#2E2721] rounded appearance-none cursor-pointer accent-[#D97C54] hover:accent-[#E0B35C] transition-all"
         />
       </div>
 
-      {/* Popover Hàng chờ */}
+      {/* Popover Hàng chờ dạng Zine Ticket */}
       {queueOpen && (
-        <div className="absolute bottom-24 right-6 w-80 max-h-[390px] glass-panel rounded-2xl shadow-2xl border border-white/15 overflow-hidden flex flex-col z-40 select-none">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-white/5">
-            <h4 className="font-bold text-xs text-white flex items-center gap-2">
-              <Queue size={16} weight="duotone" className="text-violet-400" />
-              Hàng chờ phát ({queue.length} bài)
+        <div className="absolute bottom-24 right-6 w-80 max-h-[390px] indie-panel rounded-2xl shadow-2xl border border-[#EDE6D6]/20 overflow-hidden flex flex-col z-40 select-none">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-dashed-indie bg-[#26211C]">
+            <h4 className="font-mono font-bold text-xs text-[#EDE6D6] flex items-center gap-2">
+              <Queue size={15} weight="duotone" className="text-[#D97C54]" />
+              HÀNG CHỜ PHÁT ({queue.length})
             </h4>
             <button
               onClick={() => setQueueOpen(false)}
-              className="text-zinc-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors"
+              className="text-[#A39282] hover:text-[#EDE6D6] p-1 rounded-lg hover:bg-[#2E2721] transition-colors"
               title="Đóng"
             >
-              <X size={15} />
+              <X size={14} />
             </button>
           </div>
 
           <div className="overflow-y-auto flex-1 p-2 space-y-1">
             {queue.length === 0 ? (
-              <p className="text-xs text-zinc-500 text-center py-8 font-medium">Hàng chờ hiện tại đang trống</p>
+              <p className="font-mono text-xs text-[#8A7B6C] text-center py-8 font-medium">Hàng chờ đang trống</p>
             ) : (
               queue.map((song) => {
                 const isCurrent = song.id === currentSong?.id;
@@ -428,27 +442,27 @@ export default function PlayerBar() {
                     }}
                     className={`flex items-center gap-2.5 px-3 py-2 rounded-xl cursor-pointer transition-all duration-150 ${
                       isCurrent
-                        ? "bg-violet-600/20 text-violet-300 border border-violet-500/30 font-bold"
-                        : "hover:bg-white/5 text-zinc-200"
+                        ? "bg-[#B85C38]/20 text-[#D97C54] border border-[#B85C38]/30 font-bold"
+                        : "hover:bg-[#26211C] text-[#EDE6D6]"
                     }`}
                   >
-                    <img src={song.albumCover} alt={song.title} className="w-8 h-8 rounded-lg object-cover flex-shrink-0 shadow" />
+                    <img src={song.albumCover} alt={song.title} className="w-8 h-8 rounded object-cover flex-shrink-0 shadow" />
                     <div className="truncate flex-1 min-w-0">
                       <div className="flex items-center gap-1 min-w-0">
-                        <p className={`text-xs truncate ${isCurrent ? "text-violet-300 font-bold" : "font-semibold"}`}>{song.title}</p>
+                        <p className={`font-serif italic text-xs truncate ${isCurrent ? "text-[#D97C54] font-bold" : ""}`}>{song.title}</p>
                         <SourceBadge source={song.source} />
                       </div>
-                      <p className="text-[10px] text-zinc-400 truncate font-medium">{song.artist}</p>
+                      <p className="font-mono text-[10px] text-[#A39282] truncate">{song.artist}</p>
                     </div>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         removeFromQueue(song.id);
                       }}
-                      className="text-zinc-500 hover:text-rose-400 p-1 rounded transition-colors flex-shrink-0"
+                      className="text-[#8A7B6C] hover:text-red-400 p-1 rounded transition-colors flex-shrink-0"
                       title="Xóa khỏi hàng chờ"
                     >
-                      <X size={13} />
+                      <X size={12} />
                     </button>
                   </div>
                 );

@@ -51,32 +51,32 @@ function ArtistCard({ artist, songs, onPlayAll }) {
   const hasSongs = Array.isArray(songs) && songs.length > 0;
 
   return (
-    <div className="mt-2.5 bg-black/40 hover:bg-black/50 rounded-xl p-3 border border-white/10 transition-all select-none">
+    <div className="mt-2.5 bg-[#26211C] hover:bg-[#2E2721] rounded-xl p-3 border border-[#EDE6D6]/10 transition-all select-none">
       <div className="flex items-center gap-3">
         <ArtistAvatar name={artist.name} image={artist.image} />
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-bold text-white truncate flex items-center gap-1">
-            <MicrophoneStage size={14} className="text-violet-400" />
+          <p className="font-serif italic text-xs font-bold text-[#EDE6D6] truncate flex items-center gap-1">
+            <MicrophoneStage size={14} className="text-[#D97C54]" />
             {artist.name}
           </p>
           {artist.genres?.length > 0 && (
-            <p className="text-[10px] text-zinc-400 truncate font-medium mt-0.5">{artist.genres.join(" · ")}</p>
+            <p className="font-mono text-[10px] text-[#A39282] truncate mt-0.5">{artist.genres.join(" · ")}</p>
           )}
-          <p className="text-[10px] text-zinc-500 font-medium">{artist.songCount} bài hát</p>
+          <p className="font-mono text-[10px] text-[#8A7B6C]">{artist.songCount} bài hát</p>
         </div>
       </div>
       <div className="mt-2.5 flex gap-2">
         <button
           onClick={() => navigate(`/artist/${encodeURIComponent(artist.name)}`)}
-          className="flex-1 text-[11px] font-semibold bg-white/10 hover:bg-white/15 text-zinc-200 rounded-lg py-1.5 transition-all active:scale-95 flex items-center justify-center gap-1"
+          className="flex-1 font-mono text-[11px] font-semibold bg-[#201A16] hover:bg-[#2E2721] text-[#EDE6D6] rounded-lg py-1.5 transition-all active:scale-95 flex items-center justify-center gap-1 border border-[#EDE6D6]/10"
         >
-          <ArrowSquareOut size={13} className="text-violet-400" />
+          <ArrowSquareOut size={13} className="text-[#D97C54]" />
           Xem nghệ sĩ
         </button>
         {hasSongs && (
           <button
             onClick={() => onPlayAll(songs)}
-            className="flex-1 text-[11px] font-semibold bg-violet-600 hover:bg-violet-500 text-white rounded-lg py-1.5 transition-all active:scale-95 flex items-center justify-center gap-1 shadow-sm"
+            className="flex-1 font-mono text-[11px] font-bold uppercase tracking-wider bg-[#B85C38] hover:bg-[#D97C54] text-[#EDE6D6] rounded-lg py-1.5 transition-all active:scale-95 flex items-center justify-center gap-1 shadow-sm"
           >
             <Play size={13} weight="fill" />
             Phát tất cả
@@ -93,21 +93,21 @@ function AlbumCard({ album, songs, onPlayAll }) {
   const hasSongs = Array.isArray(songs) && songs.length > 0;
 
   return (
-    <div className="mt-2.5 bg-black/40 hover:bg-black/50 rounded-xl p-3 border border-white/10 transition-all select-none">
+    <div className="mt-2.5 bg-[#26211C] hover:bg-[#2E2721] rounded-xl p-3 border border-[#EDE6D6]/10 transition-all select-none">
       <div className="flex items-center gap-3">
         <img
           src={album.coverImg}
           alt={album.title}
           loading="lazy"
-          className="w-12 h-12 rounded-xl object-cover flex-shrink-0 shadow border border-white/10"
+          className="w-12 h-12 rounded-xl object-cover flex-shrink-0 shadow border border-[#EDE6D6]/15 bg-[#181512]"
         />
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-bold text-white truncate flex items-center gap-1">
-            <Disc size={14} className="text-violet-400" />
+          <p className="font-serif italic text-xs font-bold text-[#EDE6D6] truncate flex items-center gap-1">
+            <Disc size={14} className="text-[#D97C54]" />
             {album.title}
           </p>
-          <p className="text-[10px] text-zinc-400 truncate font-medium mt-0.5">{album.artist}</p>
-          <p className="text-[10px] text-zinc-500 font-medium">
+          <p className="font-mono text-[10px] text-[#A39282] truncate mt-0.5">{album.artist}</p>
+          <p className="font-mono text-[10px] text-[#8A7B6C]">
             {album.songCount} bài
             {album.releaseYears?.length > 0 ? ` · ${album.releaseYears.join(", ")}` : ""}
           </p>
@@ -116,15 +116,15 @@ function AlbumCard({ album, songs, onPlayAll }) {
       <div className="mt-2.5 flex gap-2">
         <button
           onClick={() => navigate(`/album/${album.id}`)}
-          className="flex-1 text-[11px] font-semibold bg-white/10 hover:bg-white/15 text-zinc-200 rounded-lg py-1.5 transition-all active:scale-95 flex items-center justify-center gap-1"
+          className="flex-1 font-mono text-[11px] font-semibold bg-[#201A16] hover:bg-[#2E2721] text-[#EDE6D6] rounded-lg py-1.5 transition-all active:scale-95 flex items-center justify-center gap-1 border border-[#EDE6D6]/10"
         >
-          <ArrowSquareOut size={13} className="text-violet-400" />
+          <ArrowSquareOut size={13} className="text-[#D97C54]" />
           Xem album
         </button>
         {hasSongs && (
           <button
             onClick={() => onPlayAll(songs)}
-            className="flex-1 text-[11px] font-semibold bg-violet-600 hover:bg-violet-500 text-white rounded-lg py-1.5 transition-all active:scale-95 flex items-center justify-center gap-1 shadow-sm"
+            className="flex-1 font-mono text-[11px] font-bold uppercase tracking-wider bg-[#B85C38] hover:bg-[#D97C54] text-[#EDE6D6] rounded-lg py-1.5 transition-all active:scale-95 flex items-center justify-center gap-1 shadow-sm"
           >
             <Play size={13} weight="fill" />
             Phát album
@@ -327,73 +327,74 @@ export default function ChatBox() {
 
   return (
     <>
-      {/* Nút mở chat */}
+      {/* Nút mở chat dạng Tem nhãn Indie */}
       <button
         onClick={() => setOpen((o) => !o)}
-        className={`group fixed bottom-28 right-6 z-50 w-[54px] h-[54px] rounded-2xl shadow-xl flex items-center justify-center transition-all duration-200 active:scale-95 border border-white/15 ${open
-            ? "bg-zinc-800 text-white shadow-black/80"
-            : "bg-violet-600 hover:bg-violet-500 text-white shadow-violet-950/70 hover:scale-105"
-          }`}
+        className={`group fixed bottom-28 right-6 z-50 w-[52px] h-[52px] rounded-2xl shadow-xl flex items-center justify-center transition-all duration-200 active:scale-95 border border-[#EDE6D6]/20 ${
+          open
+            ? "bg-[#26211C] text-[#EDE6D6] shadow-black/80"
+            : "bg-[#B85C38] hover:bg-[#D97C54] text-[#EDE6D6] shadow-black/50 hover:scale-105"
+        }`}
         title="Trợ lý âm nhạc JamWave AI"
       >
         {open ? (
-          <X size={22} weight="bold" />
+          <X size={20} weight="bold" />
         ) : (
           <div className="relative flex items-center justify-center">
-            <MusicNotes size={25} weight="duotone" className="text-white" />
-            <span className="absolute -top-1 -right-1.5 flex items-center justify-center w-4 h-4 rounded-full bg-amber-400 text-black shadow-sm">
-              <Sparkle size={10} weight="fill" />
+            <MusicNotes size={22} weight="duotone" className="text-[#EDE6D6]" />
+            <span className="absolute -top-1 -right-1.5 flex items-center justify-center w-3.5 h-3.5 rounded-full bg-[#E0B35C] text-[#2B2620] shadow-sm">
+              <Sparkle size={9} weight="fill" />
             </span>
           </div>
         )}
       </button>
 
-      {/* Panel chat Glassmorphism */}
+      {/* Panel chat Sổ tay ghi chú Zine */}
       {open && (
-        <div className="fixed bottom-44 right-5 z-50 w-[470px] max-w-[calc(100vw-2rem)] h-[560px] max-h-[calc(100vh-200px)] glass-chat rounded-3xl shadow-2xl border border-white/10 flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+        <div className="fixed bottom-44 right-5 z-50 w-[470px] max-w-[calc(100vw-2rem)] h-[560px] max-h-[calc(100vh-200px)] indie-panel rounded-3xl shadow-2xl border-dashed-indie flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150 font-sans">
           {/* Header */}
-          <div className="flex items-center justify-between px-5 py-3.5 bg-white/5 border-b border-white/10">
+          <div className="flex items-center justify-between px-5 py-3.5 bg-[#26211C] border-b border-dashed-indie">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-violet-600 text-white flex items-center justify-center flex-shrink-0 shadow-md relative">
-                <MusicNotes size={22} weight="duotone" />
-                <Sparkle size={11} weight="fill" className="absolute top-1.5 right-1.5 text-amber-300" />
+              <div className="w-9 h-9 rounded-xl bg-[#B85C38] text-[#EDE6D6] flex items-center justify-center flex-shrink-0 shadow-md relative border border-[#EDE6D6]/20">
+                <MusicNotes size={20} weight="duotone" />
+                <Sparkle size={10} weight="fill" className="absolute top-1 right-1 text-[#E0B35C]" />
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5">
-                  <p className="font-bold text-sm text-white">Trợ lý Nhạc AI</p>
-                  <span className="text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded-md bg-amber-400/15 text-amber-300 border border-amber-400/30">
-                    AI
+                  <p className="font-serif italic font-bold text-sm text-[#EDE6D6]">Sổ Tay Trợ Lý AI</p>
+                  <span className="font-mono text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-[#E0B35C]/20 text-[#E0B35C] border border-[#E0B35C]/30">
+                    GEMINI
                   </span>
                 </div>
-                <p className="text-[11px] text-zinc-400 font-medium">Tìm nhạc • Gợi ý • Điều khiển bài hát</p>
+                <p className="font-mono text-[10px] text-[#A39282]">Gợi ý nhạc • Tra cứu • Điều khiển</p>
               </div>
             </div>
 
             <div className="flex items-center gap-1">
               <button
                 onClick={() => navigate("/docs")}
-                className="p-1.5 rounded-xl hover:bg-white/10 text-zinc-400 hover:text-white transition-all"
+                className="p-1.5 rounded-xl hover:bg-[#2E2721] text-[#A39282] hover:text-[#EDE6D6] transition-all"
                 title="Hướng dẫn sử dụng"
               >
-                <BookOpenText size={18} />
+                <BookOpenText size={17} />
               </button>
               <button
                 onClick={() => setShowSuggestions((prev) => !prev)}
                 className={`p-1.5 rounded-xl transition-all ${
                   showSuggestions
-                    ? "bg-violet-600/30 text-violet-300 border border-violet-500/40"
-                    : "hover:bg-white/10 text-zinc-400 hover:text-white"
+                    ? "bg-[#B85C38]/25 text-[#D97C54] border border-[#B85C38]/30"
+                    : "hover:bg-[#2E2721] text-[#A39282] hover:text-[#EDE6D6]"
                 }`}
                 title={showSuggestions ? "Ẩn danh mục gợi ý" : "Hiện danh mục gợi ý"}
               >
-                <Lightbulb size={18} weight={showSuggestions ? "fill" : "regular"} />
+                <Lightbulb size={17} weight={showSuggestions ? "fill" : "regular"} />
               </button>
               <button
                 onClick={() => setOpen(false)}
-                className="p-1.5 rounded-full hover:bg-white/10 text-zinc-400 hover:text-white transition-all"
+                className="p-1.5 rounded-xl hover:bg-[#2E2721] text-[#A39282] hover:text-[#EDE6D6] transition-all"
                 title="Đóng"
               >
-                <X size={18} />
+                <X size={17} />
               </button>
             </div>
           </div>
@@ -403,10 +404,11 @@ export default function ChatBox() {
             {messages.map((msg, i) => (
               <div key={i} className={`flex items-start gap-1.5 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                 <div
-                  className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm whitespace-pre-line shadow-sm transition-all ${msg.role === "user"
-                      ? "bg-violet-600 text-white font-medium rounded-br-none"
-                      : "bg-white/10 backdrop-blur-md text-zinc-100 rounded-bl-none border border-white/10"
-                    }`}
+                  className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-xs whitespace-pre-line shadow-sm transition-all ${
+                    msg.role === "user"
+                      ? "bg-[#B85C38] text-[#EDE6D6] font-medium rounded-br-none"
+                      : "bg-[#26211C] text-[#EDE6D6] rounded-bl-none border border-[#EDE6D6]/10"
+                  }`}
                 >
                   {renderFormattedText(msg.text)}
 
@@ -438,22 +440,22 @@ export default function ChatBox() {
                     </div>
                   )}
 
-                  {/* Bài hát được gợi ý */}
+                  {/* Bài hát được gợi ý dạng cuống vé */}
                   {msg.songs.length > 0 && (
                     <div className="mt-2.5 space-y-1.5 select-none">
                       {msg.songs.map((song) => (
                         <button
                           key={`${song.id}-${song.title}`}
                           onClick={() => handlePlaySong(song, msg.songs)}
-                          className="w-full flex items-center gap-2.5 bg-black/40 hover:bg-violet-600/20 rounded-xl px-2.5 py-2 text-left transition-all duration-150 border border-white/5 group"
+                          className="w-full flex items-center gap-2.5 bg-[#201A16] hover:bg-[#2E2721] rounded-xl px-2.5 py-2 text-left transition-all duration-150 border border-[#EDE6D6]/10 group"
                         >
-                          <img src={song.albumCover} alt={song.title} loading="lazy" className="w-9 h-9 rounded-lg object-cover flex-shrink-0 shadow-sm" />
+                          <img src={song.albumCover} alt={song.title} loading="lazy" className="w-8 h-8 rounded object-cover flex-shrink-0 shadow-sm" />
                           <div className="truncate flex-1 min-w-0">
-                            <p className="text-xs font-semibold truncate text-white group-hover:text-violet-300">{song.title}</p>
-                            <p className="text-[11px] text-zinc-400 truncate">{song.artist}</p>
+                            <p className="font-serif italic text-xs truncate text-[#EDE6D6] group-hover:text-[#D97C54]">{song.title}</p>
+                            <p className="font-mono text-[10px] text-[#A39282] truncate">{song.artist}</p>
                           </div>
-                          <span className="text-[10px] text-zinc-500 font-medium tabular-nums">{formatDuration(song.duration)}</span>
-                          <Play size={14} weight="fill" className="text-violet-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                          <span className="font-mono text-[10px] text-[#8A7B6C] tabular-nums">{formatDuration(song.duration)}</span>
+                          <Play size={13} weight="fill" className="text-[#D97C54] opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
                         </button>
                       ))}
                     </div>
@@ -466,7 +468,7 @@ export default function ChatBox() {
                         <button
                           key={s}
                           onClick={() => handleSend(s)}
-                          className="text-[10px] font-medium bg-violet-600/20 hover:bg-violet-600/40 text-violet-200 rounded-full px-2.5 py-1 transition-all border border-violet-500/30 active:scale-95"
+                          className="font-mono text-[10px] bg-[#B85C38]/20 hover:bg-[#B85C38]/40 text-[#D97C54] rounded-full px-2.5 py-1 transition-all border border-[#B85C38]/30 active:scale-95"
                         >
                           {s}
                         </button>
@@ -479,10 +481,10 @@ export default function ChatBox() {
                 {msg.role === "bot" && (
                   <button
                     onClick={() => handleCopyText(msg.text, i)}
-                    className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white transition-all flex-shrink-0 mt-1 select-none"
+                    className="p-1.5 rounded-lg bg-[#26211C] hover:bg-[#2E2721] text-[#8A7B6C] hover:text-[#EDE6D6] transition-all flex-shrink-0 mt-1 select-none border border-[#EDE6D6]/10"
                     title={copiedIndex === i ? "Đã sao chép!" : "Sao chép tin nhắn"}
                   >
-                    {copiedIndex === i ? <Check size={13} weight="bold" className="text-violet-400" /> : <Copy size={13} />}
+                    {copiedIndex === i ? <Check size={12} weight="bold" className="text-[#D97C54]" /> : <Copy size={12} />}
                   </button>
                 )}
               </div>
@@ -490,13 +492,11 @@ export default function ChatBox() {
 
             {sending && (
               <div className="flex justify-start">
-                <div className="bg-white/10 text-zinc-300 rounded-2xl rounded-bl-none px-4 py-2.5 text-xs font-medium flex items-center gap-2.5 border border-white/10 shadow-sm">
-                  <div className="flex items-end gap-1 h-3.5">
-                    <span className="w-1 bg-violet-400 rounded-full equalizer-bar-1" />
-                    <span className="w-1 bg-purple-400 rounded-full equalizer-bar-2" />
-                    <span className="w-1 bg-violet-300 rounded-full equalizer-bar-3" />
+                <div className="bg-[#26211C] text-[#A39282] rounded-2xl rounded-bl-none px-4 py-2.5 text-xs flex items-center gap-2 border border-[#EDE6D6]/10 shadow-sm font-mono">
+                  <div className="w-3.5 h-3.5 rounded-full border border-[#D97C54] flex items-center justify-center reel-spinning">
+                    <div className="w-1 h-1 rounded-full bg-[#D97C54]" />
                   </div>
-                  <span>JamWave AI đang xử lý...</span>
+                  <span>JamWave AI đang tra cứu...</span>
                 </div>
               </div>
             )}
@@ -504,8 +504,7 @@ export default function ChatBox() {
 
           {/* Category Tabs & Quick Suggestions */}
           {showSuggestions && (
-            <div className="px-4 pb-2.5 pt-2 border-t border-white/10 bg-white/[0.03]">
-              {/* Category tabs grid: 4 columns, perfect fit */}
+            <div className="px-4 pb-2.5 pt-2 border-t border-dashed-indie bg-[#26211C]/60">
               <div className="grid grid-cols-4 gap-1.5 pb-1">
                 {CATEGORY_TABS.map((cat) => {
                   const Icon = cat.icon;
@@ -514,26 +513,25 @@ export default function ChatBox() {
                     <button
                       key={cat.id}
                       onClick={() => setActiveTab(cat.id)}
-                      className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-xl text-[11px] font-bold transition-all select-none ${
+                      className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-xl font-mono text-[10px] font-bold transition-all select-none border ${
                         isActive
-                          ? "bg-violet-600 text-white shadow-md shadow-violet-950/60"
-                          : "bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-zinc-200 border border-white/5"
+                          ? "bg-[#B85C38] text-[#EDE6D6] border-[#D97C54] shadow-sm"
+                          : "bg-[#26211C] hover:bg-[#2E2721] text-[#A39282] hover:text-[#EDE6D6] border-[#EDE6D6]/10"
                       }`}
                     >
-                      <Icon size={14} weight={isActive ? "fill" : "bold"} className="flex-shrink-0" />
+                      <Icon size={13} weight={isActive ? "fill" : "bold"} className="flex-shrink-0" />
                       <span className="truncate">{cat.name}</span>
                     </button>
                   );
                 })}
               </div>
 
-              {/* Category Prompts Grid: 2 columns with roomy spacing */}
               <div className="grid grid-cols-2 gap-1.5 mt-1.5 max-h-[82px] overflow-y-auto no-scrollbar">
                 {currentCategory.prompts.map((s) => (
                   <button
                     key={s}
                     onClick={() => handleSend(s)}
-                    className="text-left text-[11px] font-medium leading-snug bg-white/5 hover:bg-violet-600/20 hover:border-violet-500/40 text-zinc-300 hover:text-white rounded-xl px-3 py-2 transition-all border border-white/10 active:scale-95 truncate shadow-sm"
+                    className="text-left font-mono text-[10px] leading-snug bg-[#201A16] hover:bg-[#2E2721] hover:border-[#D97C54]/40 text-[#A39282] hover:text-[#EDE6D6] rounded-xl px-2.5 py-1.5 transition-all border border-[#EDE6D6]/10 active:scale-95 truncate"
                     title={s}
                   >
                     {s}
@@ -544,7 +542,7 @@ export default function ChatBox() {
           )}
 
           {/* Input */}
-          <div className="p-3 border-t border-white/10 bg-white/5">
+          <div className="p-3 border-t border-dashed-indie bg-[#26211C]">
             <div className="flex items-center gap-2">
               <input
                 type="text"
@@ -553,28 +551,28 @@ export default function ChatBox() {
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleSend();
                 }}
-                placeholder="Nhập câu hỏi hoặc tên bài hát..."
-                className="flex-1 bg-white/5 border border-white/10 text-white text-sm px-4 py-2.5 rounded-2xl outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500/20 transition-all placeholder-zinc-500"
+                placeholder="Hỏi gợi ý nhạc hoặc điều khiển..."
+                className="flex-1 bg-[#201A16] border border-[#EDE6D6]/15 text-[#EDE6D6] font-serif text-xs px-3.5 py-2.5 rounded-xl outline-none focus:border-[#D97C54] transition-all placeholder-[#8A7B6C]"
               />
               <button
                 onClick={voiceListening ? stopVoice : () => startVoice()}
                 disabled={!voiceSupported || sending}
-                className={`w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 transition-all shadow-md active:scale-95 ${
+                className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-all shadow-md active:scale-95 border border-[#EDE6D6]/15 ${
                   voiceListening
-                    ? "bg-red-500 hover:bg-red-400 text-white animate-pulse"
-                    : "bg-white/10 hover:bg-white/20 text-zinc-300 hover:text-white disabled:opacity-40"
+                    ? "bg-red-500 text-white animate-pulse"
+                    : "bg-[#201A16] hover:bg-[#2E2721] text-[#A39282] hover:text-[#EDE6D6] disabled:opacity-40"
                 }`}
-                title={voiceSupported ? "Nhập bằng giọng nói" : "Trình duyệt chưa hỗ trợ nhập giọng nói"}
+                title={voiceSupported ? "Nhập bằng giọng nói" : "Trình duyệt chưa hỗ trợ giọng nói"}
               >
-                <MicrophoneStage size={18} weight={voiceListening ? "fill" : "bold"} />
+                <MicrophoneStage size={16} weight={voiceListening ? "fill" : "bold"} />
               </button>
               <button
                 onClick={() => handleSend()}
                 disabled={!input.trim() || sending}
-                className="w-10 h-10 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white flex items-center justify-center disabled:opacity-40 transition-all flex-shrink-0 shadow-md active:scale-95"
+                className="w-9 h-9 rounded-xl bg-[#B85C38] hover:bg-[#D97C54] text-[#EDE6D6] flex items-center justify-center disabled:opacity-40 transition-all flex-shrink-0 shadow-md active:scale-95 border border-[#EDE6D6]/20"
                 title="Gửi"
               >
-                <PaperPlaneTilt size={18} weight="fill" />
+                <PaperPlaneTilt size={16} weight="fill" />
               </button>
             </div>
           </div>

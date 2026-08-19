@@ -2,12 +2,12 @@ import { useState } from "react";
 import { getArtistPlaceholder } from "../utils/artistPlaceholders";
 
 const GRADIENTS = [
-  "from-violet-600 to-cyan-400",
-  "from-fuchsia-600 to-violet-400",
-  "from-cyan-500 to-blue-500",
-  "from-purple-600 to-pink-500",
-  "from-emerald-500 to-cyan-400",
-  "from-indigo-600 to-fuchsia-500",
+  "from-[#B85C38] to-[#D97C54]",
+  "from-[#76876F] to-[#5C6E56]",
+  "from-[#D9A036] to-[#E0B35C]",
+  "from-[#8C5D3A] to-[#B85C38]",
+  "from-[#5C6E56] to-[#76876F]",
+  "from-[#3D332A] to-[#594B3E]",
 ];
 
 const getInitials = (name) => {
