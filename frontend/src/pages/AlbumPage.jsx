@@ -16,7 +16,7 @@ export default function AlbumPage() {
     let cancelled = false;
     fetchAlbum(id)
       .then((data) => {
-        if (!cancelled) return;
+        if (cancelled) return;
         setAlbum(data);
         setQueue(data.songs);
       })

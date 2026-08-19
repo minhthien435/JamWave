@@ -21,7 +21,7 @@ export default function ArtistPage() {
     let cancelled = false;
     fetchArtistSongs(name)
       .then((data) => {
-        if (!cancelled) return;
+        if (cancelled) return;
         setArtist(data);
         setQueue(data.songs);
         if (user) {
