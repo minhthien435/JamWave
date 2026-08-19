@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { getArtistPlaceholder } from "../utils/artistPlaceholders";
+import { resolveImageUrl } from "../utils/imageUrl";
 
 const GRADIENTS = [
   "from-[#B85C38] to-[#D97C54]",
@@ -31,7 +32,8 @@ export default function ArtistAvatar({ name, image, className = "w-12 h-12 round
   // Lưu tên nghệ sĩ có ảnh bị lỗi (tự reset khi đổi nghệ sĩ)
   const [failedName, setFailedName] = useState(null);
 
-  const src = image || getArtistPlaceholder(name);
+  const rawSrc = image || getArtistPlaceholder(name);
+  const src = resolveImageUrl(rawSrc);
   const imgFailed = failedName === name && src;
 
   if (src && !imgFailed) {

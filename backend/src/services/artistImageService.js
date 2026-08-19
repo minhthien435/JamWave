@@ -57,12 +57,15 @@ async function fetchAudiusArtistImage(name) {
     );
     const best = exact || results[0];
 
-    return (
+    const rawPic =
       best.profile_picture?.["480x480"] ||
       best.profile_picture?.["1000x1000"] ||
       best.profile_picture?.["150x150"] ||
-      null
-    );
+      null;
+
+    if (!rawPic) return null;
+    const match = rawPic.match(/\/content\/.+$/i);
+    return match ? `https://creatornode.audius.co${match[0]}` : rawPic;
   } catch (error) {
     console.error("Audius artist image lỗi:", error.message);
     return null;
