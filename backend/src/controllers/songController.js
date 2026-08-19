@@ -111,7 +111,8 @@ const getRandomSongs = async (req, res) => {
     const limit = Math.min(Math.max(parseInt(req.query.limit) || 20, 1), 100);
 
     const songs = await prisma.$queryRawUnsafe(
-      `SELECT * FROM "Song" WHERE "duplicateOf" IS NULL ORDER BY RANDOM() LIMIT ${limit}`
+      `SELECT "id","title","artist","albumCover","audioURL","duration","releaseYear","genre","source","albumId","mbid","isrc","artistMbid","duplicateOf","createdAt","updatedAt"
+       FROM "Song" WHERE "duplicateOf" IS NULL ORDER BY RANDOM() LIMIT ${limit}`
     );
 
     res.json(songs);
