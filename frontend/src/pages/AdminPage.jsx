@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   ShieldCheck,
   Users,
@@ -10,6 +11,8 @@ import {
   Trash,
   MagnifyingGlass,
   SpinnerGap,
+  X,
+  WarningCircle,
 } from "@phosphor-icons/react";
 import {
   fetchAdminStats,
@@ -79,38 +82,90 @@ export default function AdminPage() {
       .finally(() => setSongLoading(false));
   }, [songQuery, songPage, toastError]);
 
-  const handleRoleChange = async (user) => {
+  const [confirmModal, setConfirmModal] = useState(null);
+  const [actionLoading, setActionLoading] = useState(false);
+
+  const handleRoleChange = (user) => {
     const newRole = user.role === "ADMIN" ? "USER" : "ADMIN";
-    if (!window.confirm(`Đổi quyền của ${user.email} thành ${newRole}?`)) return;
-    try {
-      await updateUserRole(user.id, newRole);
-      setUsers((prev) => prev.map((u) => (u.id === user.id ? { ...u, role: newRole } : u)));
-      toastSuccess(`Đã đổi quyền ${user.email} thành ${newRole}`);
-    } catch (err) {
-      toastError(err.message);
-    }
+    setConfirmModal({
+      title: "Xác nhận đổi quyền tài khoản",
+      message: (
+        <span>
+          Bạn có chắc muốn đổi quyền của <span className="text-[#EDE6D6] font-medium font-serif italic">{user.email}</span> thành <span className={`font-mono font-bold ${newRole === "ADMIN" ? "text-amber-400" : "text-[#A39282]"}`}>{newRole}</span>?
+        </span>
+      ),
+      icon: ShieldCheck,
+      variant: newRole === "ADMIN" ? "warning" : "default",
+      confirmText: `Đổi thành ${newRole}`,
+      action: async () => {
+        setActionLoading(true);
+        try {
+          await updateUserRole(user.id, newRole);
+          setUsers((prev) => prev.map((u) => (u.id === user.id ? { ...u, role: newRole } : u)));
+          toastSuccess(`Đã đổi quyền ${user.email} thành ${newRole}`);
+          setConfirmModal(null);
+        } catch (err) {
+          toastError(err.message);
+        } finally {
+          setActionLoading(false);
+        }
+      },
+    });
   };
 
-  const handleDeleteUser = async (user) => {
-    if (!window.confirm(`Xóa người dùng ${user.email}? Toàn bộ dữ liệu của họ sẽ bị xóa.`)) return;
-    try {
-      const result = await deleteUser(user.id);
-      setUsers((prev) => prev.filter((u) => u.id !== user.id));
-      toastSuccess(result.message);
-    } catch (err) {
-      toastError(err.message);
-    }
+  const handleDeleteUser = (user) => {
+    setConfirmModal({
+      title: "Xác nhận xóa người dùng",
+      message: (
+        <span>
+          Bạn có chắc muốn xóa vĩnh viễn người dùng <span className="text-[#EDE6D6] font-medium font-serif italic">{user.email}</span>? Toàn bộ danh sách bài hát yêu thích, playlist và dữ liệu nghe của tài khoản này sẽ bị xóa khỏi hệ thống.
+        </span>
+      ),
+      icon: Trash,
+      variant: "danger",
+      confirmText: "Xóa tài khoản",
+      action: async () => {
+        setActionLoading(true);
+        try {
+          const result = await deleteUser(user.id);
+          setUsers((prev) => prev.filter((u) => u.id !== user.id));
+          toastSuccess(result.message);
+          setConfirmModal(null);
+        } catch (err) {
+          toastError(err.message);
+        } finally {
+          setActionLoading(false);
+        }
+      },
+    });
   };
 
-  const handleDeleteSong = async (song) => {
-    if (!window.confirm(`Xóa bài hát "${song.title}" của ${song.artist}?`)) return;
-    try {
-      const result = await deleteSong(song.id);
-      setSongs((prev) => prev.filter((s) => s.id !== song.id));
-      toastSuccess(result.message);
-    } catch (err) {
-      toastError(err.message);
-    }
+  const handleDeleteSong = (song) => {
+    setConfirmModal({
+      title: "Xác nhận xóa bài hát",
+      message: (
+        <span>
+          Bạn có chắc muốn xóa bài hát <span className="text-[#EDE6D6] font-medium font-serif italic">"{song.title}"</span> của <span className="text-[#A39282]">{song.artist}</span>? Bản thu này sẽ bị gỡ bỏ khỏi toàn bộ playlist và lịch sử hệ thống.
+        </span>
+      ),
+      icon: Trash,
+      variant: "danger",
+      confirmText: "Xóa bài hát",
+      action: async () => {
+        setActionLoading(true);
+        try {
+          const result = await deleteSong(song.id);
+          setSongs((prev) => prev.filter((s) => s.id !== song.id));
+          setSongTotal((prev) => Math.max(0, prev - 1));
+          toastSuccess(result.message);
+          setConfirmModal(null);
+        } catch (err) {
+          toastError(err.message);
+        } finally {
+          setActionLoading(false);
+        }
+      },
+    });
   };
 
   return (
@@ -373,6 +428,85 @@ export default function AdminPage() {
           )}
         </div>
       )}
+
+      {/* Confirmation Modal */}
+      {confirmModal &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[120] bg-black/30 backdrop-blur-sm flex items-start justify-center p-4 pt-20 sm:pt-28 pb-32 animate-fade-in font-sans"
+            onClick={() => !actionLoading && setConfirmModal(null)}
+          >
+            <div
+              className={`indie-panel rounded-2xl p-6 w-full max-w-md shadow-2xl border ${
+                confirmModal.variant === "danger"
+                  ? "border-red-500/25"
+                  : confirmModal.variant === "warning"
+                  ? "border-amber-500/25"
+                  : "border-[#EDE6D6]/20"
+              }`}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-start gap-4">
+                <div
+                  className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm border ${
+                    confirmModal.variant === "danger"
+                      ? "bg-red-500/15 border-red-500/30 text-red-400"
+                      : confirmModal.variant === "warning"
+                      ? "bg-amber-500/15 border-amber-500/30 text-amber-300"
+                      : "bg-[#2E2721] border-[#EDE6D6]/20 text-[#D97C54]"
+                  }`}
+                >
+                  {confirmModal.icon ? (
+                    <confirmModal.icon size={22} weight="duotone" />
+                  ) : (
+                    <WarningCircle size={22} weight="duotone" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-serif italic font-bold text-lg text-[#EDE6D6]">
+                    {confirmModal.title}
+                  </h3>
+                  <div className="text-xs text-[#A39282] mt-2 leading-relaxed">
+                    {confirmModal.message}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-dashed-indie">
+                <button
+                  type="button"
+                  disabled={actionLoading}
+                  onClick={() => setConfirmModal(null)}
+                  className="font-mono text-xs px-4 py-2.5 rounded-xl text-[#A39282] hover:text-[#EDE6D6] bg-[#26211C] hover:bg-[#2E2721] border border-[#EDE6D6]/10 transition-colors disabled:opacity-50"
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  type="button"
+                  disabled={actionLoading}
+                  onClick={confirmModal.action}
+                  className={`font-mono text-xs font-bold uppercase tracking-wider px-4 py-2.5 rounded-xl text-white shadow-md active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50 ${
+                    confirmModal.variant === "danger"
+                      ? "bg-red-600/90 hover:bg-red-600"
+                      : confirmModal.variant === "warning"
+                      ? "bg-amber-600 hover:bg-amber-500 text-[#181411]"
+                      : "bg-[#B85C38] hover:bg-[#D97C54]"
+                  }`}
+                >
+                  {actionLoading ? (
+                    <>
+                      <SpinnerGap size={14} className="animate-spin" />
+                      <span>Đang xử lý...</span>
+                    </>
+                  ) : (
+                    <span>{confirmModal.confirmText || "Xác nhận"}</span>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 }
