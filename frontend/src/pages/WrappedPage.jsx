@@ -13,10 +13,10 @@ import { fetchWrapped } from "../api/wrapped";
 import { usePlayerStore } from "../usePlayerStore";
 
 const PERIODS = [
-  { key: "week", label: "Tuần" },
-  { key: "month", label: "Tháng" },
-  { key: "year", label: "Năm" },
-  { key: "all", label: "Tất cả" },
+  { key: "week", label: "Tuần Này" },
+  { key: "month", label: "Tháng Này" },
+  { key: "year", label: "Năm Nay" },
+  { key: "all", label: "Tất Cả Thời Gian" },
 ];
 
 const formatMinutes = (minutes) => {
@@ -56,24 +56,27 @@ export default function WrappedPage() {
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-center">
-        <p className="text-rose-400 font-semibold mb-2">Không thể tải thống kê</p>
-        <p className="text-zinc-500 text-sm">{error}</p>
+      <div className="flex flex-col items-center justify-center py-20 text-center font-sans">
+        <p className="font-mono text-sm text-red-400 mb-2">Không thể tải thống kê</p>
+        <p className="font-mono text-xs text-[#A39282]">{error}</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8 pb-6 select-none">
+    <div className="space-y-8 pb-6 select-none font-sans">
       {/* Header */}
-      <div className="relative overflow-hidden rounded-3xl bg-[#14141c] p-6 sm:p-8 border border-white/10 shadow-2xl">
+      <div className="relative overflow-hidden rounded-3xl indie-panel p-6 sm:p-8 border-dashed-indie shadow-2xl">
         <div className="relative z-10">
-          <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-white flex items-center gap-2.5">
-            <Sparkle size={26} weight="fill" className="text-violet-400" />
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#B85C38]/15 border border-[#B85C38]/30 text-[#D97C54] font-mono text-[10px] uppercase font-bold tracking-[0.18em] mb-3">
+            <Sparkle size={13} weight="fill" className="text-[#E0B35C]" />
+            JamWave • TỔNG KẾT
+          </div>
+          <h1 className="font-serif italic font-bold text-2xl sm:text-4xl text-[#EDE6D6] tracking-tight">
             JamWave Wrapped
           </h1>
-          <p className="text-zinc-400 mt-1.5 text-xs sm:text-sm font-medium">
-            Tổng kết hành trình thưởng thức âm nhạc độc lập của bạn
+          <p className="font-mono text-xs text-[#A39282] mt-1.5">
+            Tổng kết hành trình thưởng thức âm nhạc độc lập và gu âm thanh của riêng bạn
           </p>
 
           {/* Period selector */}
@@ -86,10 +89,10 @@ export default function WrappedPage() {
                   setError(null);
                   setPeriod(p.key);
                 }}
-                className={`text-xs font-semibold px-4 py-1.5 rounded-full border transition-all active:scale-95 ${
+                className={`font-mono text-xs font-semibold px-4 py-2 rounded-xl border transition-all active:scale-95 ${
                   period === p.key
-                    ? "bg-violet-600 text-white border-violet-500 shadow-sm"
-                    : "bg-white/5 hover:bg-white/10 text-zinc-300 border-white/10"
+                    ? "bg-[#B85C38] text-[#EDE6D6] border-[#D97C54] shadow-sm"
+                    : "bg-[#26211C] hover:bg-[#2E2721] text-[#A39282] hover:text-[#EDE6D6] border-[#EDE6D6]/10"
                 }`}
               >
                 {p.label}
@@ -100,75 +103,75 @@ export default function WrappedPage() {
       </div>
 
       {loading ? (
-        <div className="flex flex-col items-center justify-center py-20 text-violet-400">
+        <div className="flex flex-col items-center justify-center py-20 text-[#D97C54]">
           <SpinnerGap size={32} className="animate-spin mb-3" />
-          <p className="text-sm text-zinc-400 font-medium">Đang tổng kết dữ liệu...</p>
+          <p className="font-mono text-xs text-[#A39282]">Đang tổng kết dữ liệu âm nhạc...</p>
         </div>
       ) : data && data.totalListens === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center text-zinc-500 glass-card rounded-2xl border border-white/10">
-          <Headphones size={40} weight="duotone" className="mb-3 text-zinc-600" />
-          <p className="text-base font-bold text-zinc-300">Chưa có dữ liệu nghe trong giai đoạn này</p>
-          <p className="text-xs text-zinc-500 mt-1">Hãy nghe thử vài bản nhạc để bảng tổng kết cập nhật!</p>
+        <div className="flex flex-col items-center justify-center py-20 text-center indie-panel rounded-2xl border-dashed-indie">
+          <Headphones size={40} weight="duotone" className="mb-3 text-[#8A7B6C]" />
+          <p className="font-serif italic text-base font-bold text-[#EDE6D6]">Chưa có dữ liệu nghe trong giai đoạn này</p>
+          <p className="font-mono text-xs text-[#A39282] mt-1">Hãy thưởng thức vài bản nhạc để bảng tổng kết cập nhật!</p>
         </div>
       ) : (
         data && (
           <>
             {/* Stat cards */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-              <div className="glass-card rounded-2xl p-4 border border-white/10 hover:border-violet-500/30 transition-colors">
-                <div className="w-9 h-9 rounded-xl bg-violet-500/15 border border-violet-500/20 flex items-center justify-center mb-3">
-                  <Headphones size={20} weight="duotone" className="text-violet-400" />
+              <div className="indie-panel rounded-2xl p-4 border-dashed-indie">
+                <div className="w-9 h-9 rounded-xl bg-[#B85C38]/15 border border-[#B85C38]/30 flex items-center justify-center mb-3">
+                  <Headphones size={20} weight="duotone" className="text-[#D97C54]" />
                 </div>
-                <p className="text-2xl sm:text-3xl font-black text-white tabular-nums">{data.totalListens}</p>
-                <p className="text-xs text-zinc-400 font-medium mt-1">Lượt nghe</p>
+                <p className="font-serif italic text-2xl sm:text-3xl font-bold text-[#EDE6D6] tabular-nums">{data.totalListens}</p>
+                <p className="font-mono text-xs text-[#A39282] mt-1">Lượt nghe</p>
               </div>
-              <div className="glass-card rounded-2xl p-4 border border-white/10 hover:border-emerald-500/30 transition-colors">
-                <div className="w-9 h-9 rounded-xl bg-emerald-500/15 border border-emerald-500/20 flex items-center justify-center mb-3">
-                  <Clock size={20} weight="duotone" className="text-emerald-400" />
+              <div className="indie-panel rounded-2xl p-4 border-dashed-indie">
+                <div className="w-9 h-9 rounded-xl bg-[#76876F]/15 border border-[#76876F]/30 flex items-center justify-center mb-3">
+                  <Clock size={20} weight="duotone" className="text-[#76876F]" />
                 </div>
-                <p className="text-2xl sm:text-3xl font-black text-white tabular-nums">{formatMinutes(data.minutesListened)}</p>
-                <p className="text-xs text-zinc-400 font-medium mt-1">Thời gian nghe</p>
+                <p className="font-serif italic text-2xl sm:text-3xl font-bold text-[#EDE6D6] tabular-nums">{formatMinutes(data.minutesListened)}</p>
+                <p className="font-mono text-xs text-[#A39282] mt-1">Thời gian nghe</p>
               </div>
-              <div className="glass-card rounded-2xl p-4 border border-white/10 hover:border-cyan-500/30 transition-colors">
-                <div className="w-9 h-9 rounded-xl bg-cyan-500/15 border border-cyan-500/20 flex items-center justify-center mb-3">
-                  <MusicNotes size={20} weight="duotone" className="text-cyan-400" />
+              <div className="indie-panel rounded-2xl p-4 border-dashed-indie">
+                <div className="w-9 h-9 rounded-xl bg-[#E0B35C]/15 border border-[#E0B35C]/30 flex items-center justify-center mb-3">
+                  <MusicNotes size={20} weight="duotone" className="text-[#E0B35C]" />
                 </div>
-                <p className="text-2xl sm:text-3xl font-black text-white tabular-nums">{data.uniqueSongs}</p>
-                <p className="text-xs text-zinc-400 font-medium mt-1">Bài hát khác nhau</p>
+                <p className="font-serif italic text-2xl sm:text-3xl font-bold text-[#EDE6D6] tabular-nums">{data.uniqueSongs}</p>
+                <p className="font-mono text-xs text-[#A39282] mt-1">Bản thu khác nhau</p>
               </div>
-              <div className="glass-card rounded-2xl p-4 border border-white/10 hover:border-amber-500/30 transition-colors">
-                <div className="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/20 flex items-center justify-center mb-3">
-                  <Users size={20} weight="duotone" className="text-amber-400" />
+              <div className="indie-panel rounded-2xl p-4 border-dashed-indie">
+                <div className="w-9 h-9 rounded-xl bg-[#A39282]/15 border border-[#A39282]/30 flex items-center justify-center mb-3">
+                  <Users size={20} weight="duotone" className="text-[#EDE6D6]" />
                 </div>
-                <p className="text-2xl sm:text-3xl font-black text-white tabular-nums">{data.topArtists.length}</p>
-                <p className="text-xs text-zinc-400 font-medium mt-1">Nghệ sĩ tiêu biểu</p>
+                <p className="font-serif italic text-2xl sm:text-3xl font-bold text-[#EDE6D6] tabular-nums">{data.topArtists.length}</p>
+                <p className="font-mono text-xs text-[#A39282] mt-1">Nghệ sĩ tiêu biểu</p>
               </div>
             </div>
 
             {/* Top songs */}
             {data.topSongs.length > 0 && (
-              <div className="glass-card rounded-2xl p-5 border border-white/10">
-                <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-300 flex items-center gap-2 mb-4">
-                  <MusicNotes size={16} weight="duotone" className="text-violet-400" /> Bài hát nghe nhiều nhất
+              <div className="indie-panel rounded-2xl p-5 border-dashed-indie">
+                <h2 className="font-mono text-xs font-bold uppercase tracking-[0.14em] text-[#EDE6D6] flex items-center gap-2 mb-4 border-b border-dashed-indie pb-3">
+                  <MusicNotes size={16} weight="duotone" className="text-[#D97C54]" /> Bản Thu Nghe Nhiều Nhất
                 </h2>
                 <div className="space-y-1">
                   {data.topSongs.map((song, i) => (
                     <button
                       key={song.id}
                       onClick={() => setCurrentSong(song)}
-                      className="w-full flex items-center gap-3.5 p-2 rounded-xl hover:bg-white/5 text-left transition-all active:scale-[0.99] group"
+                      className="w-full flex items-center gap-3.5 p-2 rounded-xl hover:bg-[#26211C] text-left transition-all active:scale-[0.99] group"
                     >
-                      <span className="w-6 text-center font-bold text-sm text-zinc-500 tabular-nums">{i + 1}</span>
+                      <span className="font-mono w-6 text-center font-bold text-xs text-[#8A7B6C] tabular-nums">{i + 1}</span>
                       {song.albumCover && (
-                        <img src={song.albumCover} alt="" className="w-10 h-10 rounded-lg object-cover shadow-sm" />
+                        <img src={song.albumCover} alt="" className="w-10 h-10 rounded-lg object-cover shadow-sm bg-[#181512]" />
                       )}
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold text-white group-hover:text-violet-300 transition-colors truncate">
+                        <p className="font-serif italic text-sm font-semibold text-[#EDE6D6] group-hover:text-[#D97C54] transition-colors truncate">
                           {song.title}
                         </p>
-                        <p className="text-xs text-zinc-400 truncate mt-0.5">{song.artist}</p>
+                        <p className="font-mono text-xs text-[#A39282] truncate mt-0.5">{song.artist}</p>
                       </div>
-                      <span className="text-xs text-zinc-400 font-medium tabular-nums">{song.listenCount} lượt</span>
+                      <span className="font-mono text-xs text-[#8A7B6C] tabular-nums">{song.listenCount} lượt</span>
                     </button>
                   ))}
                 </div>
@@ -177,19 +180,19 @@ export default function WrappedPage() {
 
             {/* Top artists */}
             {data.topArtists.length > 0 && (
-              <div className="glass-card rounded-2xl p-5 border border-white/10">
-                <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-300 flex items-center gap-2 mb-4">
-                  <Users size={16} weight="duotone" className="text-violet-400" /> Nghệ sĩ bạn yêu thích
+              <div className="indie-panel rounded-2xl p-5 border-dashed-indie">
+                <h2 className="font-mono text-xs font-bold uppercase tracking-[0.14em] text-[#EDE6D6] flex items-center gap-2 mb-4 border-b border-dashed-indie pb-3">
+                  <Users size={16} weight="duotone" className="text-[#E0B35C]" /> Nghệ Sĩ Bạn Yêu Thích
                 </h2>
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
                   {data.topArtists.map((a, i) => (
                     <button
                       key={a.name}
                       onClick={() => navigate(`/artist/${encodeURIComponent(a.name)}`)}
-                      className="group text-left glass-card rounded-2xl p-3 transition-all active:scale-95"
+                      className="group text-left indie-panel rounded-2xl p-3 border-dashed-indie hover:-translate-y-1 transition-all active:scale-95"
                     >
                       <div className="relative">
-                        <div className="aspect-square rounded-full overflow-hidden bg-zinc-800 mb-2 border border-white/10">
+                        <div className="aspect-square rounded-full overflow-hidden bg-[#181512] mb-2 border border-[#EDE6D6]/15">
                           {a.coverImg ? (
                             <img
                               src={a.coverImg}
@@ -197,19 +200,19 @@ export default function WrappedPage() {
                               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                             />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center text-zinc-500">
+                            <div className="w-full h-full flex items-center justify-center text-[#8A7B6C]">
                               <Users size={28} weight="duotone" />
                             </div>
                           )}
                         </div>
-                        <span className="absolute -top-1 -left-1 w-5 h-5 rounded-full bg-violet-600 text-white text-[11px] font-bold flex items-center justify-center shadow-md tabular-nums">
+                        <span className="absolute -top-1 -left-1 w-5 h-5 rounded-full bg-[#B85C38] text-[#EDE6D6] font-mono text-[10px] font-bold flex items-center justify-center shadow-md tabular-nums">
                           {i + 1}
                         </span>
                       </div>
-                      <p className="text-sm font-semibold truncate text-white group-hover:text-violet-300 transition-colors">
+                      <p className="font-serif italic text-sm font-semibold truncate text-[#EDE6D6] group-hover:text-[#D97C54] transition-colors">
                         {a.name}
                       </p>
-                      <p className="text-xs text-zinc-400 font-medium tabular-nums mt-0.5">{a.listenCount} lượt</p>
+                      <p className="font-mono text-xs text-[#8A7B6C] tabular-nums mt-0.5">{a.listenCount} lượt</p>
                     </button>
                   ))}
                 </div>
@@ -218,19 +221,19 @@ export default function WrappedPage() {
 
             {/* Top genres */}
             {data.topGenres.length > 0 && (
-              <div className="glass-card rounded-2xl p-5 border border-white/10">
-                <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-300 flex items-center gap-2 mb-4">
-                  <TrendUp size={16} weight="duotone" className="text-violet-400" /> Thể loại dẫn đầu
+              <div className="indie-panel rounded-2xl p-5 border-dashed-indie">
+                <h2 className="font-mono text-xs font-bold uppercase tracking-[0.14em] text-[#EDE6D6] flex items-center gap-2 mb-4 border-b border-dashed-indie pb-3">
+                  <TrendUp size={16} weight="duotone" className="text-[#76876F]" /> Thể Loại Dẫn Đầu
                 </h2>
                 <div className="flex flex-wrap gap-2">
                   {data.topGenres.map((g, i) => (
                     <span
                       key={g.genre}
-                      className="flex items-center gap-2 text-xs font-semibold px-3.5 py-1.5 rounded-full bg-white/5 border border-white/10 text-zinc-300"
+                      className="flex items-center gap-2 font-mono text-xs font-semibold px-3.5 py-1.5 rounded-xl bg-[#26211C] border border-[#EDE6D6]/10 text-[#EDE6D6]"
                     >
-                      <span className={`w-1.5 h-1.5 rounded-full ${i === 0 ? "bg-violet-400" : "bg-zinc-400"}`} />
+                      <span className={`w-2 h-2 rounded-full ${i === 0 ? "bg-[#D97C54]" : "bg-[#76876F]"}`} />
                       {g.genre}
-                      <span className="text-zinc-500 font-medium tabular-nums">{g.count} lượt</span>
+                      <span className="text-[#8A7B6C] tabular-nums font-normal">({g.count} lượt)</span>
                     </span>
                   ))}
                 </div>

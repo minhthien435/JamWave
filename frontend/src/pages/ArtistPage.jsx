@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Play, SpinnerGap, Heart, Disc } from "@phosphor-icons/react";
+import { Play, SpinnerGap, Heart, Disc, MicrophoneStage } from "@phosphor-icons/react";
 import { fetchArtistSongs, fetchFollowedArtists, followArtist, unfollowArtist } from "../api/artists";
 import { usePlayerStore } from "../usePlayerStore";
 import { useAuthStore } from "../useAuthStore";
@@ -62,18 +62,18 @@ export default function ArtistPage() {
 
   if (!artist && !error) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-violet-400">
-        <SpinnerGap size={32} className="animate-spin mb-3" />
-        <p className="text-sm text-zinc-400 font-medium">Đang tải thông tin nghệ sĩ...</p>
+      <div className="flex flex-col items-center justify-center py-20 text-[#D97C54] font-sans">
+        <SpinnerGap size={30} className="animate-spin mb-3" />
+        <p className="font-mono text-xs text-[#A39282]">Đang tìm tư liệu nghệ sĩ...</p>
       </div>
     );
   }
 
   if (error || !artist) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-center">
-        <p className="text-rose-400 font-semibold mb-2">Không thể tải thông tin nghệ sĩ</p>
-        <p className="text-zinc-500 text-sm">{error}</p>
+      <div className="flex flex-col items-center justify-center py-20 text-center font-sans">
+        <p className="font-mono text-sm text-red-400 mb-2">Không thể tải thông tin nghệ sĩ</p>
+        <p className="font-mono text-xs text-[#A39282]">{error}</p>
       </div>
     );
   }
@@ -84,33 +84,41 @@ export default function ArtistPage() {
   };
 
   return (
-    <div className="space-y-8 select-none pb-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row items-center sm:items-end gap-6 pb-6 border-b border-white/10">
-        <div className="w-40 h-40 sm:w-48 sm:h-48 rounded-full overflow-hidden shadow-2xl flex-shrink-0 border-2 border-white/10 p-0.5">
+    <div className="space-y-8 select-none pb-8 font-sans">
+      {/* Header Artist Stamp */}
+      <div className="flex flex-col sm:flex-row items-center sm:items-end gap-6 pb-6 border-b border-dashed-indie">
+        <div className="w-36 h-36 sm:w-44 sm:h-44 rounded-full overflow-hidden shadow-2xl flex-shrink-0 border-2 border-[#EDE6D6]/20 p-1 bg-[#26211C]">
           <ArtistAvatar
             name={artist.artist.name}
             image={artist.artist.image || artist.artist.coverImg}
-            className="w-full h-full rounded-full text-5xl"
+            className="w-full h-full rounded-full text-4xl"
           />
         </div>
-        <div className="min-w-0 text-center sm:text-left flex-1">
-          <p className="text-xs uppercase font-bold text-violet-400 tracking-wider">Nghệ sĩ Indie</p>
-          <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-white mt-1 mb-2 truncate">
+
+        <div className="min-w-0 text-center sm:text-left flex-1 space-y-2">
+          <div className="flex items-center justify-center sm:justify-start gap-2">
+            <span className="font-mono text-[10px] uppercase font-bold text-[#D97C54] tracking-widest px-2.5 py-0.5 rounded-full bg-[#B85C38]/15 border border-[#B85C38]/30 inline-flex items-center gap-1">
+              <MicrophoneStage size={12} />
+              NGHỆ SĨ ĐỘC LẬP
+            </span>
+          </div>
+
+          <h1 className="font-serif italic text-3xl sm:text-4xl font-bold tracking-tight text-[#EDE6D6] truncate">
             {artist.artist.name}
           </h1>
-          <p className="text-sm text-zinc-400 font-medium">
-            <span className="tabular-nums">{artist.artist.songCount}</span> bài hát trong thư viện
+
+          <p className="font-mono text-xs text-[#A39282]">
+            <span>{artist.artist.songCount}</span> bản thu trong kho analog
             {artist.artist.country ? ` • ${artist.artist.country}` : ""}
             {artist.artist.yearRange ? ` • ${artist.artist.yearRange}` : ""}
           </p>
 
           {artist.artist.genres?.length > 0 && (
-            <div className="flex flex-wrap justify-center sm:justify-start gap-1.5 mt-3">
+            <div className="flex flex-wrap justify-center sm:justify-start gap-1.5 pt-1">
               {artist.artist.genres.slice(0, 6).map((g) => (
                 <span
                   key={g}
-                  className="text-xs font-semibold px-3 py-0.5 rounded-full bg-white/5 text-zinc-300 border border-white/10"
+                  className="font-mono text-[10px] px-2.5 py-0.5 rounded-lg bg-[#26211C] text-[#EDE6D6] border border-[#EDE6D6]/15"
                 >
                   {g}
                 </span>
@@ -118,30 +126,30 @@ export default function ArtistPage() {
             </div>
           )}
 
-          <div className="flex items-center justify-center sm:justify-start gap-3 mt-4">
+          <div className="flex items-center justify-center sm:justify-start gap-2.5 pt-2">
             <button
               onClick={handlePlayAll}
               disabled={artist.songs.length === 0}
-              className="w-13 h-13 w-[52px] h-[52px] rounded-full bg-violet-600 hover:bg-violet-500 text-white flex items-center justify-center hover:scale-105 disabled:opacity-40 disabled:hover:scale-100 transition-all shadow-md shadow-violet-950/60 active:scale-95"
+              className="w-11 h-11 rounded-xl bg-[#B85C38] hover:bg-[#D97C54] text-[#EDE6D6] flex items-center justify-center disabled:opacity-40 transition-all shadow-md active:scale-95 border border-[#EDE6D6]/20"
               title="Phát tất cả"
             >
-              <Play size={22} weight="fill" className="ml-0.5" />
+              <Play size={18} weight="fill" className="ml-0.5" />
             </button>
 
             {user && (
               <button
                 onClick={handleToggleFollow}
                 disabled={followToggling}
-                className={`flex items-center gap-2 text-xs font-semibold px-5 py-2.5 rounded-full border transition-all active:scale-95 disabled:opacity-60 ${
+                className={`font-mono text-xs flex items-center gap-2 px-4 py-2.5 rounded-xl border transition-all active:scale-95 disabled:opacity-60 ${
                   following
-                    ? "bg-white/10 hover:bg-white/15 border-white/20 text-white"
-                    : "bg-violet-600 hover:bg-violet-500 border-violet-500 text-white shadow-md shadow-violet-950/60"
+                    ? "bg-[#26211C] border-[#EDE6D6]/20 text-[#EDE6D6]"
+                    : "bg-[#B85C38] hover:bg-[#D97C54] border-[#EDE6D6]/20 text-[#EDE6D6] shadow-sm"
                 }`}
               >
                 {followToggling ? (
-                  <SpinnerGap size={14} className="animate-spin" />
+                  <SpinnerGap size={13} className="animate-spin" />
                 ) : (
-                  <Heart size={15} weight={following ? "fill" : "regular"} className={following ? "text-violet-400" : ""} />
+                  <Heart size={14} weight={following ? "fill" : "regular"} className={following ? "text-[#D97C54]" : ""} />
                 )}
                 {following ? "Đang theo dõi" : "Theo dõi"}
               </button>
@@ -150,20 +158,23 @@ export default function ArtistPage() {
         </div>
       </div>
 
-      {/* Albums */}
+      {/* Albums (Polaroids) */}
       {artist.artist.albums?.length > 0 && (
         <div className="space-y-4">
-          <h2 className="text-xl font-bold text-white flex items-center gap-2">
-            <Disc size={20} weight="duotone" className="text-violet-400" /> Albums
+          <h2 className="font-mono text-xs font-bold uppercase tracking-[0.14em] text-[#EDE6D6] flex items-center gap-2">
+            <Disc size={16} weight="duotone" className="text-[#D97C54]" /> ALBUM PHÁT HÀNH ({artist.artist.albums.length})
           </h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3.5">
-            {artist.artist.albums.map((album) => (
+            {artist.artist.albums.map((album, idx) => (
               <button
                 key={album.id}
                 onClick={() => navigate(`/album/${album.id}`)}
-                className="group text-left glass-card rounded-2xl p-3 transition-all active:scale-95"
+                className={`group text-left polaroid-frame rounded-lg p-2.5 transition-all active:scale-95 relative ${
+                  idx % 2 === 0 ? "-rotate-1" : "rotate-1"
+                }`}
               >
-                <div className="aspect-square rounded-xl overflow-hidden bg-zinc-800 mb-2 shadow-sm">
+                <div className="washi-tape absolute -top-2 left-1/2 -translate-x-1/2 w-10 h-3 rounded-sm rotate-2 z-10" />
+                <div className="aspect-square rounded overflow-hidden bg-[#181512] mb-2 shadow-inner">
                   {album.coverImg ? (
                     <img
                       src={album.coverImg}
@@ -176,10 +187,10 @@ export default function ArtistPage() {
                     </div>
                   )}
                 </div>
-                <p className="text-sm font-semibold truncate text-white group-hover:text-violet-300 transition-colors">
+                <p className="font-serif italic font-semibold text-xs truncate text-[#EDE6D6] group-hover:text-[#D97C54] transition-colors">
                   {album.title}
                 </p>
-                <p className="text-xs text-zinc-400 font-medium tabular-nums mt-0.5">{album.songCount} bài</p>
+                <p className="font-mono text-[10px] text-[#A39282] mt-0.5">{album.songCount} bản thu</p>
               </button>
             ))}
           </div>

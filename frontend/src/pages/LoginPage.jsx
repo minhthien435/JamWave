@@ -92,35 +92,46 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="fixed inset-0 overflow-y-auto bg-[#0d0d12] text-white select-none">
+    <div className="fixed inset-0 overflow-y-auto bg-[#181512] text-[#EDE6D6] select-none font-sans">
       <AuthBackground />
 
       <div className="min-h-full w-full flex flex-col items-center justify-center px-4 py-6 sm:py-10 relative z-10">
         <div className="w-full max-w-md my-auto">
-          <div className="bg-[#14141c]/95 backdrop-blur-2xl rounded-3xl p-6 sm:p-8 shadow-2xl border border-white/10">
-            <h1 className="text-2xl font-black tracking-tight mb-5 text-center text-white">Đăng nhập tài khoản</h1>
+          <div className="indie-panel rounded-3xl p-6 sm:p-8 shadow-2xl border-dashed-indie relative">
+            {/* Header Stamp */}
+            <div className="text-center mb-6">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#B85C38]/15 border border-[#B85C38]/30 text-[#D97C54] font-mono text-[10px] uppercase font-bold tracking-[0.18em] mb-2.5">
+                JAMWAVE MUSIC
+              </div>
+              <h1 className="font-serif italic text-2xl sm:text-3xl font-bold tracking-tight text-[#EDE6D6]">
+                Đăng Nhập Tài Khoản
+              </h1>
+              <p className="font-mono text-xs text-[#A39282] mt-1.5">
+                Đăng nhập để lắng nghe playlist và kho nhạc cá nhân
+              </p>
+            </div>
 
             {notVerified && (
-              <div className="text-xs font-semibold text-amber-300 bg-amber-500/15 border border-amber-400/30 rounded-xl px-4 py-3 mb-5 shadow-sm">
+              <div className="font-mono text-xs text-[#E0B35C] bg-[#E0B35C]/15 border border-[#E0B35C]/30 rounded-xl px-4 py-3 mb-5 shadow-sm">
                 ⚠️ Email chưa được xác thực. Kiểm tra hộp thư của bạn hoặc gửi lại email xác thực.
               </div>
             )}
 
             {(formError || error) && !notVerified && (
-              <p className="text-xs font-semibold text-rose-300 bg-rose-500/15 border border-rose-500/30 rounded-xl px-4 py-3 mb-5 shadow-sm">
+              <p className="font-mono text-xs text-red-400 bg-red-500/15 border border-red-500/30 rounded-xl px-4 py-3 mb-5 shadow-sm">
                 ⚠️ {formError || error}
               </p>
             )}
 
             {resendMsg && (
-              <p className="text-xs font-semibold text-emerald-300 bg-emerald-500/15 border border-emerald-400/30 rounded-xl px-4 py-3 mb-5 shadow-sm">
+              <p className="font-mono text-xs text-[#76876F] bg-[#76876F]/15 border border-[#76876F]/30 rounded-xl px-4 py-3 mb-5 shadow-sm">
                 ✅ {resendMsg}
               </p>
             )}
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-zinc-300 mb-1.5" htmlFor="email">
+                <label className="block font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-[#EDE6D6] mb-1.5" htmlFor="email">
                   Địa chỉ Email
                 </label>
                 <input
@@ -136,15 +147,15 @@ export default function LoginPage() {
                       setFieldErrors((prev) => ({ ...prev, email: "Email không hợp lệ" }));
                     }
                   }}
-                  placeholder="you@example.com"
+                  placeholder="name@example.com"
                   autoComplete="email"
-                  className={`w-full bg-[#14141c] text-white px-4 py-3 rounded-2xl outline-none border transition-all text-sm placeholder-zinc-500 font-medium ${
+                  className={`w-full bg-[#26211C] text-[#EDE6D6] px-4 py-3 rounded-xl outline-none border transition-all font-serif text-sm placeholder-[#8A7B6C] ${
                     fieldErrors.email
-                      ? "border-rose-500/60 focus:border-rose-400 focus:ring-1 focus:ring-rose-400/20"
-                      : "border-white/10 focus:border-violet-500 focus:ring-1 focus:ring-violet-500/20"
+                      ? "border-red-500/60 focus:border-red-400"
+                      : "border-[#EDE6D6]/15 focus:border-[#D97C54]"
                   }`}
                 />
-                {fieldErrors.email && <p className="text-xs font-medium text-rose-400 mt-1 ml-1">{fieldErrors.email}</p>}
+                {fieldErrors.email && <p className="font-mono text-xs text-red-400 mt-1 ml-1">{fieldErrors.email}</p>}
               </div>
 
               <PasswordInput
@@ -174,9 +185,9 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="mt-1 w-full bg-violet-600 hover:bg-violet-500 active:scale-95 text-white font-bold py-3.5 rounded-2xl transition-all duration-150 shadow-md shadow-violet-950/60 disabled:opacity-50"
+                className="mt-1 w-full bg-[#B85C38] hover:bg-[#D97C54] active:scale-95 text-[#EDE6D6] font-mono text-xs font-bold uppercase tracking-wider py-3.5 rounded-xl transition-all duration-150 shadow-md border border-[#EDE6D6]/20 disabled:opacity-50"
               >
-                {loading ? "Đang kết nối..." : "Đăng nhập ngay"}
+                {loading ? "Đang đăng nhập..." : "Đăng nhập ngay"}
               </button>
             </form>
 
@@ -185,7 +196,7 @@ export default function LoginPage() {
                 type="button"
                 onClick={handleResend}
                 disabled={resending}
-                className="mt-3 w-full text-xs font-semibold text-amber-300 hover:text-amber-200 py-2 rounded-xl border border-amber-400/30 hover:bg-amber-500/10 transition-all disabled:opacity-50"
+                className="mt-3 w-full font-mono text-xs text-[#E0B35C] hover:text-[#EDE6D6] py-2 rounded-xl border border-[#E0B35C]/30 hover:bg-[#E0B35C]/10 transition-all disabled:opacity-50"
               >
                 {resending ? "Đang gửi..." : "Gửi lại email xác thực"}
               </button>
@@ -194,19 +205,19 @@ export default function LoginPage() {
             {GOOGLE_CLIENT_ID && (
               <>
                 <div className="flex items-center gap-3 my-5">
-                  <span className="flex-1 h-px bg-white/10" />
-                  <span className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">hoặc</span>
-                  <span className="flex-1 h-px bg-white/10" />
+                  <span className="flex-1 h-px bg-[#EDE6D6]/10" />
+                  <span className="font-mono text-[10px] font-bold text-[#8A7B6C] uppercase tracking-wider">hoặc</span>
+                  <span className="flex-1 h-px bg-[#EDE6D6]/10" />
                 </div>
                 <GoogleButton clientId={GOOGLE_CLIENT_ID} onCredential={handleGoogle} />
               </>
             )}
 
-            <div className="mt-6 pt-5 border-t border-white/10 text-center">
-              <p className="text-sm text-zinc-400 font-medium">
+            <div className="mt-6 pt-5 border-t border-dashed-indie text-center">
+              <p className="font-mono text-xs text-[#A39282]">
                 Chưa có tài khoản?{" "}
-                <Link to="/register" className="text-violet-400 font-semibold hover:text-violet-300 hover:underline transition-colors">
-                  Đăng ký ngay
+                <Link to="/register" className="text-[#D97C54] font-bold hover:text-[#EDE6D6] transition-colors">
+                  Đăng ký tài khoản mới
                 </Link>
               </p>
             </div>

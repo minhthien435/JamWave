@@ -53,13 +53,13 @@ export default function LikesPage() {
   // Chưa đăng nhập
   if (!user) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-center select-none">
-        <Heart size={48} weight="duotone" className="text-violet-400 mb-3" />
-        <p className="text-zinc-200 font-bold text-lg mb-1">Đăng nhập để xem bài hát đã thích</p>
-        <p className="text-zinc-400 text-xs mb-4">Lưu lại những bài hát bạn yêu thích để nghe lại bất cứ lúc nào</p>
+      <div className="flex flex-col items-center justify-center py-20 text-center select-none font-sans">
+        <Heart size={48} weight="duotone" className="text-[#D97C54] mb-3" />
+        <p className="font-serif italic text-lg font-bold text-[#EDE6D6] mb-1">Đăng nhập để xem bài hát đã thích</p>
+        <p className="font-mono text-xs text-[#A39282] mb-4">Lưu lại những bài hát bạn yêu thích để nghe lại bất cứ lúc nào</p>
         <Link
           to="/login"
-          className="text-xs font-bold px-6 py-2.5 rounded-full bg-violet-600 hover:bg-violet-500 text-white transition-all shadow-md shadow-violet-950/50"
+          className="font-mono text-xs font-bold uppercase tracking-wider px-6 py-2.5 rounded-xl bg-[#B85C38] hover:bg-[#D97C54] text-[#EDE6D6] transition-all shadow-md active:scale-95"
         >
           Đăng nhập ngay
         </Link>
@@ -69,53 +69,55 @@ export default function LikesPage() {
 
   if (songs === null && !error) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-violet-400">
+      <div className="flex flex-col items-center justify-center py-20 text-[#D97C54] font-sans">
         <SpinnerGap size={32} className="animate-spin mb-3" />
-        <p className="text-sm text-zinc-400 font-medium">Đang tải bài hát yêu thích...</p>
+        <p className="font-mono text-xs text-[#A39282]">Đang tải bài hát yêu thích...</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 pb-6 select-none">
+    <div className="space-y-6 pb-6 select-none font-sans">
       {/* Header Card */}
-      <div className="relative overflow-hidden rounded-3xl bg-[#14141c] p-6 sm:p-8 border border-white/10 shadow-2xl">
+      <div className="relative overflow-hidden rounded-3xl indie-panel p-6 sm:p-8 border-dashed-indie shadow-2xl">
         <div className="flex flex-col sm:flex-row items-start sm:items-end gap-6 relative z-10">
-          <div className="w-40 h-40 sm:w-48 sm:h-48 bg-gradient-to-br from-rose-500 via-pink-600 to-rose-700 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-rose-950/50 flex-shrink-0 border border-white/10">
-            <Heart size={72} weight="fill" className="drop-shadow-lg text-white" />
+          <div className="w-36 h-36 sm:w-44 sm:h-44 bg-[#B85C38]/20 border border-[#B85C38]/40 rounded-2xl flex items-center justify-center text-[#D97C54] shadow-xl flex-shrink-0">
+            <Heart size={64} weight="fill" className="drop-shadow-md text-[#D97C54]" />
           </div>
           <div className="min-w-0 space-y-2">
-            <span className="text-xs uppercase font-bold tracking-widest text-rose-300 px-3.5 py-1 rounded-full bg-rose-500/15 border border-rose-500/30">
+            <span className="font-mono text-[10px] uppercase font-bold tracking-widest text-[#D97C54] px-3.5 py-1 rounded-full bg-[#B85C38]/15 border border-[#B85C38]/30">
               Bộ sưu tập cá nhân
             </span>
-            <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-white">Bài hát đã thích</h1>
-            <p className="text-xs sm:text-sm text-zinc-300 font-medium">
-              <span className="tabular-nums">{(songs || []).length}</span> bài hát • Yêu thích bởi <span className="text-white font-bold">{user.name}</span>
+            <h1 className="font-serif italic font-bold text-3xl sm:text-5xl text-[#EDE6D6]">
+              Bản Thu Đã Thích
+            </h1>
+            <p className="font-mono text-xs text-[#A39282]">
+              <span className="tabular-nums font-bold text-[#EDE6D6]">{(songs || []).length}</span> bài hát • Yêu thích bởi <span className="text-[#EDE6D6] font-bold">{user.name}</span>
             </p>
 
             <button
               onClick={handlePlayAll}
               disabled={!songs || songs.length === 0}
-              className="w-13 h-13 w-[52px] h-[52px] rounded-full bg-rose-500 hover:bg-rose-400 text-white flex items-center justify-center hover:scale-105 disabled:opacity-40 disabled:hover:scale-100 transition-all shadow-md shadow-rose-950/60 active:scale-95 mt-4"
+              className="w-13 h-13 sm:w-14 sm:h-14 rounded-2xl bg-[#B85C38] hover:bg-[#D97C54] text-[#EDE6D6] flex items-center justify-center hover:scale-105 disabled:opacity-40 disabled:hover:scale-100 transition-all shadow-md active:scale-95 border border-[#EDE6D6]/20 mt-3"
               title="Phát tất cả"
             >
-              <Play size={22} weight="fill" className="ml-0.5" />
+              <Play size={20} weight="fill" className="ml-0.5" />
             </button>
           </div>
         </div>
       </div>
 
       {error ? (
-        <div className="flex flex-col items-center justify-center py-10 text-center">
-          <p className="text-rose-400 font-semibold mb-2">Không thể tải bài hát yêu thích</p>
-          <p className="text-zinc-500 text-sm">{error}</p>
+        <div className="flex flex-col items-center justify-center py-10 text-center font-sans">
+          <p className="font-mono text-sm text-red-400 mb-2">Không thể tải bài hát yêu thích</p>
+          <p className="font-mono text-xs text-[#A39282]">{error}</p>
         </div>
       ) : (
         <div className="pt-2">
           <SongTable
             songs={songs || []}
             onUnlike={handleUnlike}
-            emptyText="Chưa có bài hát yêu thích nào. Nhấn trái tim trên bài hát để thêm vào đây."
+            emptyText="Chưa có bản thu yêu thích nào. Nhấn trái tim trên bản nhạc để lưu vào đây."
           />
         </div>
       )}

@@ -89,23 +89,25 @@ export default function RegisterPage() {
   // Màn hình "kiểm tra email" sau khi đăng ký thành công
   if (registeredEmail) {
     return (
-      <div className="fixed inset-0 overflow-y-auto bg-[#0d0d12] text-white select-none">
+      <div className="fixed inset-0 overflow-y-auto bg-[#181512] text-[#EDE6D6] select-none font-sans">
         <AuthBackground />
         <div className="min-h-full w-full flex flex-col items-center justify-center px-4 py-10 relative z-10">
-          <div className="w-full max-w-md my-auto bg-[#14141c]/95 backdrop-blur-2xl rounded-3xl p-8 shadow-2xl border border-white/10 text-center">
-            <div className="w-14 h-14 mx-auto rounded-2xl bg-violet-600 flex items-center justify-center shadow-lg shadow-violet-950/60 mb-5 text-white">
+          <div className="w-full max-w-md my-auto indie-panel rounded-3xl p-8 shadow-2xl border-dashed-indie text-center">
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-[#B85C38] flex items-center justify-center shadow-lg border border-[#EDE6D6]/20 mb-5 text-[#EDE6D6]">
               <EnvelopeSimple size={28} weight="bold" />
             </div>
-            <h1 className="text-2xl font-black tracking-tight mb-2 text-white">Kiểm tra email của bạn 📧</h1>
-            <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed font-medium">
-              Chúng tôi đã gửi link xác thực đến{" "}
-              <span className="text-violet-300 font-bold">{registeredEmail}</span>.
+            <h1 className="font-serif italic text-2xl font-bold tracking-tight mb-2 text-[#EDE6D6]">
+              Kiểm tra hộp thư của bạn ✉️
+            </h1>
+            <p className="font-mono text-xs text-[#A39282] leading-relaxed">
+              Chúng tôi đã gửi thư xác thực đến{" "}
+              <span className="text-[#D97C54] font-bold">{registeredEmail}</span>.
               <br />
-              Bấm vào link trong email để kích hoạt tài khoản của bạn.
+              Bấm vào liên kết trong thư để kích hoạt tài khoản JamWave.
             </p>
 
             {resendMsg && (
-              <p className="text-xs font-semibold text-emerald-300 bg-emerald-500/15 border border-emerald-400/30 rounded-xl px-4 py-3 my-4 shadow-sm">
+              <p className="font-mono text-xs text-[#76876F] bg-[#76876F]/15 border border-[#76876F]/30 rounded-xl px-4 py-3 my-4 shadow-sm">
                 ✅ {resendMsg}
               </p>
             )}
@@ -113,7 +115,7 @@ export default function RegisterPage() {
             <button
               onClick={handleResend}
               disabled={resending}
-              className="mt-5 w-full text-xs font-semibold text-amber-300 hover:text-amber-200 py-3 rounded-xl border border-amber-400/30 hover:bg-amber-500/10 transition-all disabled:opacity-50"
+              className="mt-5 w-full font-mono text-xs font-bold uppercase tracking-wider text-[#E0B35C] hover:text-[#EDE6D6] py-3 rounded-xl border border-[#E0B35C]/30 hover:bg-[#E0B35C]/10 transition-all disabled:opacity-50"
             >
               {resending ? (
                 <span className="flex items-center justify-center gap-2">
@@ -124,10 +126,10 @@ export default function RegisterPage() {
               )}
             </button>
 
-            <p className="text-center text-sm text-zinc-400 mt-5 font-medium">
+            <p className="font-mono text-xs text-[#A39282] mt-5">
               Đã có tài khoản?{" "}
-              <Link to="/login" className="text-violet-400 font-semibold hover:text-violet-300 hover:underline">
-                Đăng nhập
+              <Link to="/login" className="text-[#D97C54] font-bold hover:text-[#EDE6D6] transition-colors">
+                Đăng nhập ngay
               </Link>
             </p>
           </div>
@@ -137,23 +139,34 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="fixed inset-0 overflow-y-auto bg-[#0d0d12] text-white select-none">
+    <div className="fixed inset-0 overflow-y-auto bg-[#181512] text-[#EDE6D6] select-none font-sans">
       <AuthBackground />
 
       <div className="min-h-full w-full flex flex-col items-center justify-center px-4 py-10 relative z-10">
         <div className="w-full max-w-md my-auto">
-          <div className="bg-[#14141c]/95 backdrop-blur-2xl rounded-3xl p-6 sm:p-8 shadow-2xl border border-white/10">
-            <h1 className="text-2xl font-black tracking-tight mb-5 text-center text-white">Đăng ký tài khoản</h1>
+          <div className="indie-panel rounded-3xl p-6 sm:p-8 shadow-2xl border-dashed-indie relative">
+            {/* Header Stamp */}
+            <div className="text-center mb-6">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#B85C38]/15 border border-[#B85C38]/30 text-[#D97C54] font-mono text-[10px] uppercase font-bold tracking-[0.18em] mb-2.5">
+                JAMWAVE MUSIC
+              </div>
+              <h1 className="font-serif italic text-2xl sm:text-3xl font-bold tracking-tight text-[#EDE6D6]">
+                Đăng Ký Tài Khoản
+              </h1>
+              <p className="font-mono text-xs text-[#A39282] mt-1.5">
+                Tạo tài khoản và lưu giữ gu âm nhạc riêng trên JamWave
+              </p>
+            </div>
 
             {(formError || error) && (
-              <p className="text-xs font-semibold text-rose-300 bg-rose-500/15 border border-rose-500/30 rounded-xl px-4 py-3 mb-5 shadow-sm">
+              <p className="font-mono text-xs text-red-400 bg-red-500/15 border border-red-500/30 rounded-xl px-4 py-3 mb-5 shadow-sm">
                 ⚠️ {formError || error}
               </p>
             )}
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-zinc-300 mb-1.5" htmlFor="name">
+                <label className="block font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-[#EDE6D6] mb-1.5" htmlFor="name">
                   Tên hiển thị
                 </label>
                 <input
@@ -171,17 +184,17 @@ export default function RegisterPage() {
                   }}
                   placeholder="Tên của bạn"
                   autoComplete="name"
-                  className={`w-full bg-[#14141c] text-white px-4 py-3 rounded-2xl outline-none border transition-all text-sm placeholder-zinc-500 font-medium ${
+                  className={`w-full bg-[#26211C] text-[#EDE6D6] px-4 py-3 rounded-xl outline-none border transition-all font-serif text-sm placeholder-[#8A7B6C] ${
                     fieldErrors.name
-                      ? "border-rose-500/60 focus:border-rose-400 focus:ring-1 focus:ring-rose-400/20"
-                      : "border-white/10 focus:border-violet-500 focus:ring-1 focus:ring-violet-500/20"
+                      ? "border-red-500/60 focus:border-red-400"
+                      : "border-[#EDE6D6]/15 focus:border-[#D97C54]"
                   }`}
                 />
-                {fieldErrors.name && <p className="text-xs font-medium text-rose-400 mt-1 ml-1">{fieldErrors.name}</p>}
+                {fieldErrors.name && <p className="font-mono text-xs text-red-400 mt-1 ml-1">{fieldErrors.name}</p>}
               </div>
 
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-zinc-300 mb-1.5" htmlFor="email">
+                <label className="block font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-[#EDE6D6] mb-1.5" htmlFor="email">
                   Địa chỉ Email
                 </label>
                 <input
@@ -197,15 +210,15 @@ export default function RegisterPage() {
                       setFieldErrors((prev) => ({ ...prev, email: "Email không hợp lệ" }));
                     }
                   }}
-                  placeholder="you@example.com"
+                  placeholder="name@mixtape.com"
                   autoComplete="email"
-                  className={`w-full bg-[#14141c] text-white px-4 py-3 rounded-2xl outline-none border transition-all text-sm placeholder-zinc-500 font-medium ${
+                  className={`w-full bg-[#26211C] text-[#EDE6D6] px-4 py-3 rounded-xl outline-none border transition-all font-serif text-sm placeholder-[#8A7B6C] ${
                     fieldErrors.email
-                      ? "border-rose-500/60 focus:border-rose-400 focus:ring-1 focus:ring-rose-400/20"
-                      : "border-white/10 focus:border-violet-500 focus:ring-1 focus:ring-violet-500/20"
+                      ? "border-red-500/60 focus:border-red-400"
+                      : "border-[#EDE6D6]/15 focus:border-[#D97C54]"
                   }`}
                 />
-                {fieldErrors.email && <p className="text-xs font-medium text-rose-400 mt-1 ml-1">{fieldErrors.email}</p>}
+                {fieldErrors.email && <p className="font-mono text-xs text-red-400 mt-1 ml-1">{fieldErrors.email}</p>}
               </div>
 
               <PasswordInput
@@ -258,27 +271,27 @@ export default function RegisterPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="mt-1 w-full bg-violet-600 hover:bg-violet-500 active:scale-95 text-white font-bold py-3.5 rounded-2xl transition-all duration-150 shadow-md shadow-violet-950/60 disabled:opacity-50"
+                className="mt-1 w-full bg-[#B85C38] hover:bg-[#D97C54] active:scale-95 text-[#EDE6D6] font-mono text-xs font-bold uppercase tracking-wider py-3.5 rounded-xl transition-all duration-150 shadow-md border border-[#EDE6D6]/20 disabled:opacity-50"
               >
-                {loading ? "Đang khởi tạo..." : "Đăng ký ngay"}
+                {loading ? "Đang tạo tài khoản..." : "Đăng ký thành viên"}
               </button>
             </form>
 
             {GOOGLE_CLIENT_ID && (
               <>
                 <div className="flex items-center gap-3 my-5">
-                  <span className="flex-1 h-px bg-white/10" />
-                  <span className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">hoặc</span>
-                  <span className="flex-1 h-px bg-white/10" />
+                  <span className="flex-1 h-px bg-[#EDE6D6]/10" />
+                  <span className="font-mono text-[10px] font-bold text-[#8A7B6C] uppercase tracking-wider">hoặc</span>
+                  <span className="flex-1 h-px bg-[#EDE6D6]/10" />
                 </div>
                 <GoogleButton clientId={GOOGLE_CLIENT_ID} onCredential={handleGoogle} />
               </>
             )}
 
-            <div className="mt-6 pt-5 border-t border-white/10 text-center">
-              <p className="text-sm text-zinc-400 font-medium">
+            <div className="mt-6 pt-5 border-t border-dashed-indie text-center">
+              <p className="font-mono text-xs text-[#A39282]">
                 Đã có tài khoản?{" "}
-                <Link to="/login" className="text-violet-400 font-semibold hover:text-violet-300 hover:underline transition-colors">
+                <Link to="/login" className="text-[#D97C54] font-bold hover:text-[#EDE6D6] transition-colors">
                   Đăng nhập ngay
                 </Link>
               </p>

@@ -6,17 +6,17 @@ import { fetchArtists, fetchFollowedArtists } from "../api/artists";
 import { fetchRecentListens, fetchTopListens } from "../api/listens";
 import { usePlayerStore } from "../usePlayerStore";
 import { useAuthStore } from "../useAuthStore";
-import { Play, Pause, Shuffle, CaretRight, Sparkle, SpinnerGap } from "@phosphor-icons/react";
+import { Play, Pause, Shuffle, CaretRight, Sparkle, SpinnerGap, CassetteTape, Disc, BookmarkSimple } from "@phosphor-icons/react";
 import SongTable from "../components/SongTable";
 import SourceBadge from "../components/SourceBadge";
 import ArtistAvatar from "../components/ArtistAvatar";
 
-// Lời chào theo khung giờ
+// Lời chào theo khung giờ mang phong cách mộc mạc
 const getGreeting = () => {
   const hour = new Date().getHours();
-  if (hour < 12) return "Chào buổi sáng";
-  if (hour < 18) return "Chào buổi chiều";
-  return "Chào buổi tối";
+  if (hour < 12) return "Bình minh dịu êm";
+  if (hour < 18) return "Hoàng hôn buông";
+  return "Đêm muộn an yên";
 };
 
 export default function HomePage() {
@@ -119,97 +119,134 @@ export default function HomePage() {
   // Skeleton Loading State
   if (loading) {
     return (
-      <div className="space-y-8">
-        <div className="h-64 bg-white/5 rounded-3xl animate-pulse" />
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+      <div className="space-y-8 animate-pulse font-sans">
+        <div className="h-64 bg-[#26211C] rounded-2xl border border-dashed-indie" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {[...Array(6)].map((_, i) => (
-            <div key={i} className="bg-white/5 p-4 rounded-2xl space-y-3 animate-pulse">
-              <div className="aspect-square bg-white/10 rounded-xl w-full" />
-              <div className="h-4 bg-white/10 rounded w-3/4" />
-              <div className="h-3 bg-white/5 rounded w-1/2" />
-            </div>
+            <div key={i} className="h-16 bg-[#26211C] rounded-xl" />
           ))}
         </div>
       </div>
     );
   }
 
-  if (error) {
+  if (error && songs.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 text-center">
-        <p className="text-rose-400 font-semibold text-base mb-2">Không thể tải dữ liệu bài hát</p>
-        <p className="text-zinc-500 text-sm">{error}</p>
+      <div className="text-center py-20 indie-panel rounded-2xl border-dashed-indie p-8 font-sans">
+        <p className="font-mono text-sm text-red-400 mb-2">Không thể tải kho nhạc analog</p>
+        <p className="text-xs text-[#A39282]">{error}</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-12 select-none pb-8">
-      {/* 0. Hero Section Editorial */}
-      <section className="relative overflow-hidden rounded-3xl p-8 sm:p-10 border border-white/10 shadow-2xl group transition-all duration-500 bg-[#12121a]">
-        {/* Subtle Video Background with Overlay */}
-        <video
-          autoPlay
-          loop
-          muted
-          playsInline
-          className="absolute inset-0 w-full h-full object-cover opacity-40 saturate-100 pointer-events-none"
-        >
-          <source src="/hero-video.mp4" type="video/mp4" />
-          <source src="https://assets.mixkit.co/videos/preview/mixkit-party-lights-and-people-dancing-at-a-concert-43282-large.mp4" type="video/mp4" />
-        </video>
+    <div className="space-y-10 font-sans select-none">
+      {/* ================= HERO: VINYL RECORD & INDIE MUSIC BANNER ================= */}
+      <section className="relative rounded-3xl overflow-hidden indie-panel border-dashed-indie p-6 sm:p-8 lg:p-10 shadow-2xl group">
+        {/* Ambient Warm Lights */}
+        <div className="absolute -right-12 -top-12 w-96 h-96 bg-[#D97C54]/18 rounded-full blur-3xl pointer-events-none animate-pulse-glow" />
+        <div className="absolute -left-12 -bottom-12 w-80 h-80 bg-[#E0B35C]/12 rounded-full blur-3xl pointer-events-none" />
 
-        {/* Ambient Dark Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-r from-[#0d0d12]/95 via-[#0d0d12]/80 to-transparent pointer-events-none" />
-
-        {/* Content */}
-        <div className="relative z-10 flex flex-col md:flex-row items-start md:items-end justify-between gap-6">
-          <div className="space-y-3 max-w-xl">
+        <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
+          {/* Left Column: Text & Primary Action Button */}
+          <div className="space-y-4 max-w-xl text-left flex-1">
             <div className="flex items-center gap-2">
-              <span className="text-[11px] font-bold uppercase tracking-widest text-violet-300 px-3 py-1 rounded-full bg-violet-900/30 border border-violet-700/30 inline-flex items-center gap-1.5">
-                <Sparkle size={13} weight="fill" />
-                INDIE WAVE
+              <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[#D97C54] px-3 py-1 rounded-full bg-[#B85C38]/15 border border-[#B85C38]/30 inline-flex items-center gap-1.5 shadow-sm">
+                <CassetteTape size={14} weight="duotone" />
+                JAMWAVE • INDIE MUSIC
               </span>
             </div>
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-white leading-tight">
+
+            <h1 className="font-serif italic text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-[#EDE6D6] leading-tight drop-shadow-sm">
               {user ? (
-                <span className="block text-xl sm:text-2xl text-violet-300 mb-1 font-bold">
-                  {getGreeting()}, {user.name} 👋
+                <span className="block text-xl sm:text-2xl text-[#D97C54] mb-1 not-italic font-normal">
+                  {getGreeting()}, {user.name}.
                 </span>
               ) : null}
-              Khám phá âm nhạc <br className="hidden sm:inline" />
-              <span className="text-white">độc lập & tự do.</span>
+              Góc nhỏ lắng nghe <br className="hidden sm:inline" />
+              <span className="text-[#EDE6D6]">những thanh âm mộc mạc.</span>
             </h1>
-            <p className="text-sm text-zinc-300 font-normal leading-relaxed max-w-lg">
-              Thưởng thức hàng ngàn bài hát từ các nghệ sĩ indie tài năng không giới hạn trên nền tảng JamWave.
+
+            <p className="text-xs sm:text-sm text-[#A39282] font-normal leading-relaxed max-w-md">
+              Tạm gác lại ồn ào vội vã, thả mình trôi theo những giai điệu indie mộc mạc và cảm xúc chân thật trên JamWave.
             </p>
+
+            {/* Action button in left column */}
+            <div className="pt-2">
+              <button
+                onClick={handleShufflePlay}
+                disabled={shuffling}
+                className="px-6 py-3.5 rounded-xl bg-[#B85C38] hover:bg-[#D97C54] text-[#EDE6D6] font-mono text-xs font-bold uppercase tracking-wider transition-all duration-150 shadow-lg active:scale-95 flex items-center gap-2.5 border border-[#EDE6D6]/20 disabled:opacity-60"
+              >
+                {shuffling ? (
+                  <SpinnerGap size={16} className="animate-spin" />
+                ) : (
+                  <Shuffle size={16} weight="bold" />
+                )}
+                Phát Ngẫu Nhiên
+              </button>
+            </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <button
+          {/* Right Column: Spinning Vinyl Record Player Graphic */}
+          <div className="flex flex-col items-center justify-center relative flex-shrink-0">
+            {/* The Vinyl Disc */}
+            <div
               onClick={handleShufflePlay}
-              disabled={shuffling}
-              className="px-6 py-3 rounded-full bg-violet-600 hover:bg-violet-500 text-white font-bold text-sm transition-all duration-150 shadow-lg shadow-violet-950/60 active:scale-95 flex items-center gap-2 disabled:opacity-60"
+              className="relative w-40 h-40 sm:w-48 sm:h-48 md:w-52 md:h-52 rounded-full bg-[#120F0D] border-4 border-[#2A231D] shadow-[0_15px_35px_rgba(0,0,0,0.8)] flex items-center justify-center group/record cursor-pointer hover:scale-105 transition-transform duration-300"
+              title="Nhấn vào đĩa để phát ngẫu nhiên"
             >
-              {shuffling ? (
-                <SpinnerGap size={18} className="animate-spin" />
-              ) : (
-                <Shuffle size={18} weight="bold" />
-              )}
-              Phát ngẫu nhiên
-            </button>
+              {/* Vinyl Grooves (Concentric Circles) */}
+              <div className="absolute inset-2 rounded-full border border-white/[0.04]" />
+              <div className="absolute inset-4 rounded-full border border-white/[0.06]" />
+              <div className="absolute inset-7 rounded-full border border-white/[0.05]" />
+              <div className="absolute inset-10 rounded-full border border-white/[0.07]" />
+              <div className="absolute inset-14 rounded-full border border-white/[0.04]" />
+
+              {/* Light Sheen / Reflection */}
+              <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-transparent via-white/[0.04] to-transparent pointer-events-none" />
+
+              {/* Spinning Vinyl Center */}
+              <div className="relative w-full h-full rounded-full flex items-center justify-center animate-spin-slow">
+                {/* Center Label */}
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-[#B85C38] via-[#A04B2A] to-[#6E2E17] border-2 border-[#EDE6D6]/40 flex flex-col items-center justify-center text-center shadow-inner relative z-10">
+                  <span className="font-mono text-[7px] font-bold tracking-widest text-[#EDE6D6]/90 uppercase">JAMWAVE</span>
+                  <Disc size={16} weight="duotone" className="text-[#EDE6D6] my-0.5" />
+                  <span className="font-mono text-[6px] text-[#EDE6D6]/70 uppercase tracking-wider">33⅓ RPM</span>
+                  {/* Spindle Hole */}
+                  <div className="w-3 h-3 rounded-full bg-[#120F0D] border border-[#EDE6D6]/60 absolute" />
+                </div>
+              </div>
+
+              {/* Hover Play Icon Overlay */}
+              <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover/record:opacity-100 transition-opacity duration-200 flex items-center justify-center z-20 backdrop-blur-[1px]">
+                <div className="w-11 h-11 rounded-full bg-[#B85C38] text-[#EDE6D6] flex items-center justify-center shadow-xl border border-[#EDE6D6]/30 group-hover/record:scale-110 transition-transform">
+                  <Play size={18} weight="fill" className="ml-0.5" />
+                </div>
+              </div>
+            </div>
+
+            {/* Subtext info */}
+            <span className="font-mono text-[10px] text-[#8A7B6C] mt-2.5 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#76876F] inline-block animate-pulse" />
+              {totalSongs} bản nhạc độc lập
+            </span>
           </div>
         </div>
       </section>
 
-      {/* 1. Lưới Thẻ Nổi Bật (Featured Cards Grid) */}
-      <section>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white">
-            {user ? "Gần đây nghe nhiều" : "Bài hát thịnh hành tuần này"}
-          </h2>
+      {/* ================= 1. GẦN ĐÂY NGHE NHIỀU (TICKET STUBS) ================= */}
+      <section className="space-y-3.5">
+        <div className="flex items-center justify-between border-b border-dashed-indie pb-2">
+          <div className="flex items-center gap-2">
+            <BookmarkSimple size={18} weight="duotone" className="text-[#D97C54]" />
+            <h2 className="font-mono text-xs font-bold uppercase tracking-[0.14em] text-[#EDE6D6]">
+              {user ? "Nghe Gần Đây" : "Bản Thu Thịnh Hành"}
+            </h2>
+          </div>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {(recentSongs.length > 0 ? recentSongs : songs.slice(0, 6)).map((song) => {
             const isThisSongSelected = currentSong?.id === song.id;
 
@@ -217,47 +254,40 @@ export default function HomePage() {
               <div
                 key={`featured-${song.id}`}
                 onClick={() => handleSelectSong(song)}
-                className={`flex items-center gap-3.5 glass-card p-2.5 rounded-2xl group cursor-pointer pr-4 transition-all duration-200 ${
-                  isThisSongSelected
-                    ? "border-violet-500/50 bg-violet-600/10"
-                    : "hover:border-violet-500/30"
+                className={`ticket-row flex items-center gap-3.5 p-2.5 rounded-xl group cursor-pointer pr-4 ${
+                  isThisSongSelected ? "bg-[#2E2721] border-[#D97C54]" : ""
                 }`}
               >
-                <div className="relative w-14 h-14 rounded-xl overflow-hidden shadow-sm flex-shrink-0">
+                <div className="w-12 h-12 p-0.5 bg-[#28221D] border border-[#EDE6D6]/15 rounded flex-shrink-0 shadow-sm">
                   <img
                     src={song.albumCover}
                     alt={song.title}
                     loading="lazy"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    className="w-full h-full rounded object-cover"
                   />
                 </div>
 
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="font-semibold text-sm truncate text-zinc-100 group-hover:text-violet-200 transition-colors">
+                    <span className="font-serif italic font-semibold text-sm truncate text-[#EDE6D6] group-hover:text-[#D97C54] transition-colors">
                       {song.title}
                     </span>
                     <SourceBadge source={song.source} />
                   </div>
-                  <p className="text-xs text-zinc-400 truncate mt-0.5 font-medium">{song.artist}</p>
-                  {song.listenCount > 0 && (
-                    <span className="text-[10px] font-semibold tabular-nums text-violet-400 mt-0.5 inline-block">
-                      {song.listenCount} lượt nghe
-                    </span>
-                  )}
+                  <p className="font-mono text-[11px] text-[#A39282] truncate mt-0.5">{song.artist}</p>
                 </div>
 
                 <button
-                  className={`w-9 h-9 rounded-full bg-violet-600 text-white flex items-center justify-center shadow-md transform transition-all duration-150 ${
+                  className={`w-8 h-8 rounded-lg bg-[#B85C38] text-[#EDE6D6] flex items-center justify-center shadow-md transform transition-all duration-150 ${
                     isThisSongSelected
                       ? "opacity-100 scale-100"
                       : "opacity-0 scale-90 group-hover:opacity-100 group-hover:scale-100"
                   }`}
                 >
                   {isThisSongSelected && isPlaying ? (
-                    <Pause weight="fill" size={16} />
+                    <Pause weight="fill" size={14} />
                   ) : (
-                    <Play weight="fill" className="ml-0.5" size={16} />
+                    <Play weight="fill" className="ml-0.5" size={14} />
                   )}
                 </button>
               </div>
@@ -266,77 +296,97 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 2. Album nổi bật */}
+      {/* ================= 2. ALBUM ĐẶC SẮC (POLAROID CRAFT FRAMES) ================= */}
       {albums.length > 0 && (
-        <section>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white">Album nổi bật</h2>
+        <section className="space-y-4">
+          <div className="flex items-center justify-between border-b border-dashed-indie pb-2">
+            <div className="flex items-center gap-2">
+              <Disc size={18} weight="duotone" className="text-[#D97C54]" />
+              <h2 className="font-mono text-xs font-bold uppercase tracking-[0.14em] text-[#EDE6D6]">
+                Album Đặc Sắc (Polaroid)
+              </h2>
+            </div>
             <Link
               to="/albums"
-              className="text-xs font-bold text-violet-400 hover:text-violet-300 transition-colors flex items-center gap-1"
+              className="font-mono text-xs font-bold text-[#D97C54] hover:text-[#EDE6D6] transition-colors flex items-center gap-1"
             >
-              <span>Xem tất cả</span>
-              <CaretRight size={14} weight="bold" />
+              <span>Xem Tất Cả</span>
+              <CaretRight size={13} weight="bold" />
             </Link>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-            {albums.slice(0, 6).map((album) => (
-              <Link
-                key={album.id}
-                to={`/album/${album.id}`}
-                className="group glass-card p-3.5 rounded-2xl transition-all duration-200"
-              >
-                <div className="aspect-square rounded-xl overflow-hidden shadow-md mb-3 bg-zinc-800 relative">
-                  <img
-                    src={album.coverImg}
-                    alt={album.title}
-                    loading="lazy"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-end p-2.5">
-                    <div className="w-9 h-9 rounded-full bg-violet-600 text-white flex items-center justify-center shadow-lg translate-y-2 group-hover:translate-y-0 transition-all duration-200">
-                      <Play size={16} weight="fill" className="ml-0.5" />
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 pt-3">
+            {albums.slice(0, 6).map((album, idx) => {
+              const tiltClass = idx % 2 === 0 ? "-rotate-1 hover:rotate-0" : "rotate-1 hover:rotate-0";
+              return (
+                <Link
+                  key={album.id}
+                  to={`/album/${album.id}`}
+                  className={`group polaroid-frame p-3 pt-3.5 pb-4 rounded-xl transition-all duration-300 relative ${tiltClass} hover:scale-105 hover:z-20 shadow-md block`}
+                >
+                  {/* Washi Tape Ribbon on top */}
+                  <div className="washi-tape absolute -top-2.5 left-1/2 -translate-x-1/2 w-12 h-4 rounded-sm rotate-2 z-10 shadow-sm opacity-90" />
+
+                  {/* Photo area */}
+                  <div className="aspect-square rounded-lg overflow-hidden shadow-inner mb-2.5 bg-[#181512] relative flex items-center justify-center">
+                    <img
+                      src={album.coverImg}
+                      alt={album.title}
+                      loading="lazy"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+                      <div className="w-10 h-10 rounded-xl bg-[#B85C38] text-[#EDE6D6] flex items-center justify-center shadow-lg border border-[#EDE6D6]/20">
+                        <Play size={16} weight="fill" className="ml-0.5" />
+                      </div>
                     </div>
                   </div>
-                </div>
-                <p className="font-bold text-sm truncate text-white group-hover:text-violet-300 transition-colors">
-                  {album.title}
-                </p>
-                <p className="text-xs text-zinc-400 truncate mt-0.5 font-medium">{album.artist}</p>
-              </Link>
-            ))}
+
+                  {/* Caption */}
+                  <div className="text-center px-0.5">
+                    <p className="font-serif italic font-semibold text-xs truncate text-[#EDE6D6] group-hover:text-[#D97C54] transition-colors">
+                      {album.title}
+                    </p>
+                    <p className="font-mono text-[10px] text-[#A39282] truncate mt-0.5">{album.artist}</p>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         </section>
       )}
 
-      {/* 3. Nghệ sĩ nổi bật */}
+      {/* ================= 3. NGHỆ SĨ ĐỘC LẬP ================= */}
       {artists.length > 0 && (
-        <section>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white">Nghệ sĩ yêu thích</h2>
+        <section className="space-y-3.5">
+          <div className="flex items-center justify-between border-b border-dashed-indie pb-2">
+            <h2 className="font-mono text-xs font-bold uppercase tracking-[0.14em] text-[#EDE6D6]">
+              Gặp Gỡ Nghệ Sĩ Độc Lập
+            </h2>
             <Link
               to="/artists"
-              className="text-xs font-bold text-violet-400 hover:text-violet-300 transition-colors flex items-center gap-1"
+              className="font-mono text-xs font-bold text-[#D97C54] hover:text-[#EDE6D6] transition-colors flex items-center gap-1"
             >
-              <span>Xem tất cả</span>
-              <CaretRight size={14} weight="bold" />
+              <span>Xem Tất Cả</span>
+              <CaretRight size={13} weight="bold" />
             </Link>
           </div>
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-4">
+
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3.5">
             {artists.slice(0, 8).map((artist) => (
               <Link
                 key={artist.name}
                 to={`/artist/${encodeURIComponent(artist.name)}`}
-                className="group flex flex-col items-center gap-2.5 p-2 rounded-2xl hover:bg-white/5 transition-all duration-200"
+                className="group flex flex-col items-center gap-2 p-2 rounded-xl hover:bg-[#26211C] transition-all"
               >
-                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden shadow-md border-2 border-transparent group-hover:border-violet-500 transition-all duration-200 p-0.5">
+                <div className="w-18 h-18 sm:w-20 sm:h-20 rounded-full overflow-hidden shadow-md border border-[#EDE6D6]/20 group-hover:border-[#D97C54] transition-all p-0.5">
                   <ArtistAvatar
                     name={artist.name}
                     image={artist.coverImg}
                     className="w-full h-full rounded-full group-hover:scale-105 transition-transform duration-300"
                   />
                 </div>
-                <p className="font-bold text-xs sm:text-sm truncate w-full text-center text-zinc-300 group-hover:text-violet-300 transition-colors">
+                <p className="font-serif italic text-xs truncate w-full text-center text-[#EDE6D6] group-hover:text-[#D97C54] transition-colors">
                   {artist.name}
                 </p>
               </Link>
@@ -345,47 +395,15 @@ export default function HomePage() {
         </section>
       )}
 
-      {/* 4. Nghệ sĩ đang theo dõi (chỉ khi đăng nhập) */}
-      {user && followedArtists.length > 0 && (
-        <section>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white">Nghệ sĩ đang theo dõi</h2>
-            <Link
-              to="/artists"
-              className="text-xs font-bold text-violet-400 hover:text-violet-300 transition-colors flex items-center gap-1"
-            >
-              <span>Xem tất cả</span>
-              <CaretRight size={14} weight="bold" />
-            </Link>
-          </div>
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-4">
-            {followedArtists.slice(0, 8).map((artist) => (
-              <Link
-                key={artist.name}
-                to={`/artist/${encodeURIComponent(artist.name)}`}
-                className="group flex flex-col items-center gap-2.5 p-2 rounded-2xl hover:bg-white/5 transition-all duration-200"
-              >
-                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden shadow-md border-2 border-violet-500/50 group-hover:border-violet-500 transition-all duration-200 p-0.5">
-                  <ArtistAvatar
-                    name={artist.name}
-                    image={artist.coverImg}
-                    className="w-full h-full rounded-full"
-                  />
-                </div>
-                <p className="font-bold text-xs sm:text-sm truncate w-full text-center text-zinc-300 group-hover:text-violet-300 transition-colors">
-                  {artist.name}
-                </p>
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* 5. Bảng Danh Sách Bài Hát */}
-      <section>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white">Bảng Xếp Hạng Bài Hát</h2>
-          <span className="text-xs text-zinc-400 font-medium tabular-nums">Tổng cộng {totalSongs} bài hát</span>
+      {/* ================= 4. BẢNG BÀI HÁT TỔNG HỢP ================= */}
+      <section className="space-y-3.5 pt-2">
+        <div className="flex items-center justify-between border-b border-dashed-indie pb-2">
+          <h2 className="font-mono text-xs font-bold uppercase tracking-[0.14em] text-[#EDE6D6]">
+            Kho Bài Hát Độc Lập
+          </h2>
+          <span className="font-mono text-[11px] text-[#A39282]">
+            Tổng {totalSongs} bài hát
+          </span>
         </div>
         <SongTable songs={songs.slice(0, 100)} />
       </section>
